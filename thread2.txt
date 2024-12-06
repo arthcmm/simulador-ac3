@@ -1,0 +1,7 @@
+CPY r1 r2 r3
+SUB r2 r3 r4
+SUB r1 r2 r3
+ADD r1 r2 r3
+SUB r2 r3 r4
+MUL r1 r2 r3
+SUB r2 r3 r4
