@@ -1,16 +1,22 @@
-import java.util.ArrayList;
+import java.awt.event.*;
 import javax.swing.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
 public class Simulador {
 
     public static void main(String[] args) {
         // Inicializar o objeto Escalar
         Escalar escalar = new Escalar();        
+        escalar.createIMTPipeline(); // Cria IMTPipeline
+        escalar.printPipeline(0);
         escalar.createBMTPipeline(); // Cria BMTPipeline
         escalar.printPipeline(1);
-        escalar.createIMTPipeline(); // Cria IMTPipeline
+        escalar.createREFPipeline(); // Cria REF Pipeline
+        escalar.printPipeline(2);
+        // Especificamente para depuração, você pode imprimir os pipelines
+        // escalar.printPipeline(0); // IMT
+        // escalar.printPipeline(1); // BMT
+        // escalar.printPipeline(2); // REF
 
         // Inicializando a interface gráfica
         EscalarPipelineViewer viewer = new EscalarPipelineViewer();
@@ -29,9 +35,12 @@ public class Simulador {
                 if (selectedArch.equals("BMT")) {
                     selectedPipeline = escalar.bmtPipeline;
                     System.out.println("Executando BMTPipeline...");
-                } else {
+                } else if (selectedArch.equals("IMT")) {
                     selectedPipeline = escalar.imtPipeline;
                     System.out.println("Executando IMTPipeline...");
+                } else { // "REF"
+                    selectedPipeline = escalar.refPipeline;
+                    System.out.println("Executando REF Pipeline...");
                 }
 
                 // Calcula o número total de ciclos necessários

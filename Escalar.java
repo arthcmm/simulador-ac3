@@ -1,5 +1,4 @@
-import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.util.ArrayList;
 
 public class Escalar {
@@ -17,7 +16,10 @@ public class Escalar {
     Contexto[] contextos = new Contexto[3];
     ArrayList<Instruction> imtPipeline = new ArrayList<>();
     ArrayList<Instruction> bmtPipeline = new ArrayList<>();
-    int totalInstructions = 0;
+    ArrayList<Instruction> refPipeline = new ArrayList<>(); // Pipeline de Referência
+    int totalInstructionsIMT = 0;
+    int totalInstructionsBMT = 0;
+    int totalInstructionsREF = 0;
     int blockSize = 3;
 
     Escalar() {
@@ -28,6 +30,10 @@ public class Escalar {
                 RandomAccessFile randomAccessFile = new RandomAccessFile("thread" + (i) + ".txt", "r");
                 while ((instruction = randomAccessFile.readLine()) != null) {
                     String[] operands = instruction.split(" ");
+                    if (operands.length < 4) {
+                        System.out.println("Formato de instrução inválido na linha: " + instruction);
+                        continue;
+                    }
                     instructions.add(
                             new Instruction(operands[0], operands[1], operands[2], operands[3], i));
                 }
@@ -39,70 +45,84 @@ public class Escalar {
             }
 
         } catch (IOException e) {
-            System.out.println("exception");
+            System.out.println("Exceção ao ler arquivos de thread.");
             e.printStackTrace();
         }
     }
 
     public void createIMTPipeline() {
+        imtPipeline.clear();
+        totalInstructionsIMT = 0;
         for (Contexto contexto : contextos) {
-            totalInstructions += contexto.qtdInstrucoes;
+            totalInstructionsIMT += contexto.qtdInstrucoes;
         }
         int[] ponteiros = new int[contextos.length];
         for (int i = 0; i < ponteiros.length; i++) {
             ponteiros[i] = 0;
         }
-        for (int i = 0; i < totalInstructions; i++) {
+        for (int i = 0; i < totalInstructionsIMT; i++) {
             int contextoAtual = i % contextos.length;
             if (ponteiros[contextoAtual] < contextos[contextoAtual].qtdInstrucoes) {
                 imtPipeline.add(contextos[contextoAtual].instructions.get(ponteiros[contextoAtual]));
                 ponteiros[contextoAtual]++;
-
             }
         }
+        System.out.print("IMT Pipeline: ");
         for (var i : imtPipeline) {
             System.out.print(i.inst + " ");
-
         }
         System.out.println();
-
     }
 
     public void createBMTPipeline() {
+        bmtPipeline.clear();
+        totalInstructionsBMT = 0;
         for (Contexto contexto : contextos) {
-            totalInstructions += contexto.qtdInstrucoes;
+            totalInstructionsBMT += contexto.qtdInstrucoes;
         }
         int[] ponteiros = new int[contextos.length];
         for (int i = 0; i < ponteiros.length; i++) {
             ponteiros[i] = 0;
         }
-        for (int i = 0; i < totalInstructions; i++) {
-            int contextoAtual = (i) % contextos.length;
+        for (int i = 0; i < totalInstructionsBMT; i++) {
+            int contextoAtual = i % contextos.length;
             for (int k = 0; k < blockSize; k++) {
                 if (ponteiros[contextoAtual] < contextos[contextoAtual].qtdInstrucoes) {
                     bmtPipeline.add(contextos[contextoAtual].instructions.get(ponteiros[contextoAtual]));
                     ponteiros[contextoAtual]++;
                 }
-
             }
         }
         encontraBolha();
     }
 
-    public void encontraBolha() {
+    public void createREFPipeline() {
+        refPipeline.clear();
+        totalInstructionsREF = 0;
+        for (Contexto contexto : contextos) {
+            refPipeline.addAll(contexto.instructions);
+        }
+        totalInstructionsREF = refPipeline.size();
+        System.out.print("REF Pipeline: ");
+        for (var i : refPipeline) {
+            System.out.print(i.inst + " ");
+        }
+        System.out.println();
+    }
 
+    public void encontraBolha() {
         for (int i = 0; i < bmtPipeline.size(); i++) {
-            if (bmtPipeline.get(i).inst.compareTo("LDW") == 0) {
-                if (i + 1 < totalInstructions) {
+            if (bmtPipeline.get(i).inst.equals("LDW")) {
+                if (i + 1 < bmtPipeline.size()) {
                     if (ehBolha(i)) {
                         Instruction bubble = new Instruction("BUB", "0", "0", "0", bmtPipeline.get(i).contexto);
                         bmtPipeline.add(i + 1, bubble);
                         i += 1;
                     }
-                    // bmtPipeline.remove(i+1);
                 }
             }
         }
+        System.out.print("BMT Pipeline: ");
         for (var instruction : bmtPipeline) {
             System.out.print(instruction.inst + " ");
         }
@@ -110,20 +130,21 @@ public class Escalar {
     }
 
     public boolean ehBolha(int i) {
-        if (bmtPipeline.get(i + 1).contexto == bmtPipeline.get(i).contexto
-                && (bmtPipeline.get(i + 1).op1.compareTo(bmtPipeline.get(i).dest) == 0
-                        || bmtPipeline.get(i + 1).op2.compareTo(bmtPipeline.get(i).dest) == 0)) {
-            return true;
-        }
-        return false;
+        if (i + 1 >= bmtPipeline.size()) return false;
+        Instruction current = bmtPipeline.get(i);
+        Instruction next = bmtPipeline.get(i + 1);
+        return next.contexto == current.contexto &&
+               (next.op1.equals(current.dest) || next.op2.equals(current.dest));
     }
 
     public void printPipeline(int multithread) {
         ArrayList<Instruction> pipeline;
         if (multithread == 0) {
             pipeline = imtPipeline;
-        } else {
+        } else if (multithread == 1) {
             pipeline = bmtPipeline;
+        } else {
+            pipeline = refPipeline;
         }
         int pointer = -1;
         if (pipeline.size() == 0) {
@@ -140,13 +161,10 @@ public class Escalar {
                     System.out.print(color + "| " + instr.inst + " |" + ANSI_RESET);
                 } else {
                     System.out.print("| NOP |");
-
                 }
-
             }
             System.out.println();
         }
-
     }
 
 }

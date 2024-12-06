@@ -1,8 +1,7 @@
-import java.util.ArrayList;
-
-import javax.swing.*;
 import java.awt.*;
+import javax.swing.*;
 
+import java.util.ArrayList;
 
 public class EscalarPipelineViewer extends JFrame {
 
@@ -48,8 +47,8 @@ public class EscalarPipelineViewer extends JFrame {
         runButton = new JButton("Run"); 
         controlPanel.add(runButton);
 
-        // Adicionando ComboBox para selecionar a arquitetura
-        architectureComboBox = new JComboBox<>(new String[]{"IMT", "BMT"});
+        // Adiciona ComboBox para selecionar a arquitetura, incluindo REF
+        architectureComboBox = new JComboBox<>(new String[]{"IMT", "BMT", "REF"});
         controlPanel.add(new JLabel("Arquitetura:"));
         controlPanel.add(architectureComboBox);
 
