@@ -2,6 +2,16 @@
 class Simulador {
 
     public static void main(String[] args) {
+
+        SuperEscalar superEscalar = new SuperEscalar();
+        superEscalar.createIMTPipeline();
+        superEscalar.printPipeline();
+        // superEscalar.simulatePipelineStages();
+
+    }
+
+    public static void rodarEscalar() {
+
         Escalar escalar = new Escalar();
         escalar.createBMTPipeline();
         escalar.printPipeline(1);

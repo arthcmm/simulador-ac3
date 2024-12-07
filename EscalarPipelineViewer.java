@@ -76,10 +76,10 @@ public class EscalarPipelineViewer extends JFrame {
                 Instruction instr = pipeline.get(currentIndex);
 
                 // Define o texto e a cor de acordo com o contexto
-                stageLabels.get(i).setText(instr.inst + " (Ctx " + instr.contexto + ")");
+                stageLabels.get(i).setText(instr.codigo + " (Ctx " + instr.contexto + ")");
                 stageLabels.get(i).setBackground(generateColor(instr.contexto + 1));
                 // stageLabels.get(i).setBackground(instr.contexto == 0 ? Color.RED : Color.GREEN);
-                if (instr.inst.compareTo("BUB") == 0) {
+                if (instr.codigo.compareTo("BUB") == 0) {
                     stageLabels.get(i).setBackground(Color.GRAY);
                 }
             } else {

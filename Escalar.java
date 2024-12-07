@@ -61,7 +61,7 @@ public class Escalar {
             }
         }
         for (var i : imtPipeline) {
-            System.out.print(i.inst + " ");
+            System.out.print(i.codigo + " ");
 
         }
         System.out.println();
@@ -92,7 +92,7 @@ public class Escalar {
     public void encontraBolha() {
 
         for (int i = 0; i < bmtPipeline.size(); i++) {
-            if (bmtPipeline.get(i).inst.compareTo("LDW") == 0) {
+            if (bmtPipeline.get(i).codigo.compareTo("LDW") == 0) {
                 if (i + 1 < totalInstructions) {
                     if (ehBolha(i)) {
                         Instruction bubble = new Instruction("BUB", "0", "0", "0", bmtPipeline.get(i).contexto);
@@ -104,7 +104,7 @@ public class Escalar {
             }
         }
         for (var instruction : bmtPipeline) {
-            System.out.print(instruction.inst + " ");
+            System.out.print(instruction.codigo + " ");
         }
         System.out.println();
     }
@@ -137,7 +137,7 @@ public class Escalar {
                 if (currentIndex >= 0 && currentIndex < pipeline.size()) {
                     Instruction instr = pipeline.get(currentIndex);
                     String color = (instr.contexto == 0) ? ANSI_RED : ANSI_GREEN;
-                    System.out.print(color + "| " + instr.inst + " |" + ANSI_RESET);
+                    System.out.print(color + "| " + instr.codigo + " |" + ANSI_RESET);
                 } else {
                     System.out.print("| NOP |");
 
