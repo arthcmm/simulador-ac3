@@ -28,70 +28,59 @@ public class Simulador {
                 // Desabilita o botão Run para evitar múltiplos cliques
                 viewer.getRunButton().setEnabled(false);
 
-                // Obtém o tipo de arquitetura selecionado
-                String selectedType = viewer.getSelectedArchitectureType();
+                // Obtém a arquitetura selecionada
+                String selectedArch = viewer.getSelectedArchitecture();
+                ArrayList<Instruction> selectedPipeline;
 
-                if (selectedType.equals("Escalar")) {
-                    // Obtém a arquitetura específica dentro de Escalar
-                    String selectedArch = viewer.getSelectedArchitecture();
-                    ArrayList<Instruction> selectedPipeline;
+                if (selectedArch.equals("BMT")) {
+                    selectedPipeline = escalar.bmtPipeline;
+                    System.out.println("Executando BMTPipeline...");
+                } else if (selectedArch.equals("IMT")) {
+                    selectedPipeline = escalar.imtPipeline;
+                    System.out.println("Executando IMTPipeline...");
+                } else { // "REF"
+                    selectedPipeline = escalar.refPipeline;
+                    System.out.println("Executando REF Pipeline...");
+                }
 
-                    if (selectedArch.equals("BMT")) {
-                        selectedPipeline = escalar.bmtPipeline;
-                        System.out.println("Executando BMTPipeline...");
-                    } else if (selectedArch.equals("IMT")) {
-                        selectedPipeline = escalar.imtPipeline;
-                        System.out.println("Executando IMTPipeline...");
-                    } else { // "REF"
-                        selectedPipeline = escalar.refPipeline;
-                        System.out.println("Executando REF Pipeline...");
+                // Calcula o número total de ciclos necessários
+                int totalCiclos = selectedPipeline.size() + 5; // 5 estágios do pipeline
+
+                // Utiliza SwingWorker para executar a simulação em uma thread separada
+                SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+                    @Override
+                    protected Void doInBackground() throws Exception {
+                        // Simulando a execução do pipeline
+                        for (int i = 0; i < totalCiclos; i++) {
+                            final int cycle = i;
+
+                            // Atualiza a pipeline no Event Dispatch Thread
+                            SwingUtilities.invokeLater(new Runnable() {
+                                @Override
+                                public void run() {
+                                    viewer.updatePipeline(selectedPipeline, cycle);
+                                }
+                            });
+
+                            // Simula o avanço dos ciclos
+                            try {
+                                Thread.sleep(500); // 0.5 segundos por ciclo
+                            } catch (InterruptedException ex) {
+                                ex.printStackTrace();
+                            }
+                        }
+                        return null;
                     }
 
-                    // Calcula o número total de ciclos necessários
-                    int totalCiclos = selectedPipeline.size() + 5; // 5 estágios do pipeline
+                    @Override
+                    protected void done() {
+                        // Reabilita o botão Run após a simulação
+                        viewer.getRunButton().setEnabled(true);
+                        JOptionPane.showMessageDialog(viewer, "Simulação concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
+                    }
+                };
 
-                    // Utiliza SwingWorker para executar a simulação em uma thread separada
-                    SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
-                        @Override
-                        protected Void doInBackground() throws Exception {
-                            // Simulando a execução do pipeline
-                            for (int i = 0; i < totalCiclos; i++) {
-                                final int cycle = i;
-
-                                // Atualiza a pipeline no Event Dispatch Thread
-                                SwingUtilities.invokeLater(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        viewer.updatePipeline(selectedPipeline, cycle);
-                                    }
-                                });
-
-                                // Simula o avanço dos ciclos
-                                try {
-                                    Thread.sleep(500); // 0.5 segundos por ciclo
-                                } catch (InterruptedException ex) {
-                                    ex.printStackTrace();
-                                }
-                            }
-                            return null;
-                        }
-
-                        @Override
-                        protected void done() {
-                            // Reabilita o botão Run após a simulação
-                            viewer.getRunButton().setEnabled(true);
-                            JOptionPane.showMessageDialog(viewer, "Simulação concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
-                        }
-                    };
-
-                    worker.execute();
-
-                } else { // "Superescalar"
-                    // Reabilita o botão Run
-                    viewer.getRunButton().setEnabled(true);
-                    // Exibe uma mensagem informando que a arquitetura ainda não está implementada
-                    JOptionPane.showMessageDialog(viewer, "A arquitetura Superescalar ainda não está implementada.", "Informação", JOptionPane.INFORMATION_MESSAGE);
-                }
+                worker.execute();
             }
         });
     }

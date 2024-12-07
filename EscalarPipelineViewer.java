@@ -1,20 +1,18 @@
 import java.awt.*;
-import javax.swing.*;
-
-import java.util.ArrayList;
 import java.awt.event.*;
+import javax.swing.*;
+import java.util.ArrayList;
 
 public class EscalarPipelineViewer extends JFrame {
 
     private JPanel pipelinePanel;
     private ArrayList<JLabel> stageLabels;
     private JButton runButton; 
-    private JComboBox<String> architectureTypeComboBox; // ComboBox para selecionar tipo de arquitetura
-    private JComboBox<String> architectureComboBox; // ComboBox para seleção da arquitetura dentro do tipo
+    private JComboBox<String> architectureComboBox; // ComboBox para seleção da arquitetura
 
     public EscalarPipelineViewer() {
         setTitle("Visualização do Pipeline");
-        setSize(900, 500); // Aumentar o tamanho para acomodar mais componentes
+        setSize(800, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // Painel para a linha de estágios
@@ -51,30 +49,10 @@ public class EscalarPipelineViewer extends JFrame {
         runButton = new JButton("Run"); 
         controlPanel.add(runButton);
 
-        // Adiciona ComboBox para selecionar o tipo de arquitetura
-        architectureTypeComboBox = new JComboBox<>(new String[]{"Escalar", "Superescalar"});
-        controlPanel.add(new JLabel("Tipo de Arquitetura:"));
-        controlPanel.add(architectureTypeComboBox);
-
-        // Adiciona ComboBox para selecionar a arquitetura específica, inicialmente configurado para "Escalar"
+        // Adiciona ComboBox para selecionar a arquitetura específica
         architectureComboBox = new JComboBox<>(new String[]{"IMT", "BMT", "REF"});
         controlPanel.add(new JLabel("Arquitetura:"));
         controlPanel.add(architectureComboBox);
-
-        // Listener para alternar entre tipos de arquitetura
-        architectureTypeComboBox.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                String selectedType = (String) architectureTypeComboBox.getSelectedItem();
-                if (selectedType.equals("Escalar")) {
-                    architectureComboBox.setEnabled(true);
-                    architectureComboBox.setModel(new DefaultComboBoxModel<>(new String[]{"IMT", "BMT", "REF"}));
-                } else { // Superescalar
-                    architectureComboBox.setEnabled(false);
-                    architectureComboBox.setModel(new DefaultComboBoxModel<>(new String[]{"N/A"}));
-                }
-            }
-        });
 
         // Painel de cabeçalho, pipeline e controles
         add(headerPanel, BorderLayout.NORTH); // Linha dos estágios fica no topo
@@ -119,10 +97,6 @@ public class EscalarPipelineViewer extends JFrame {
 
     public JButton getRunButton() {
         return runButton;
-    }
-
-    public String getSelectedArchitectureType() {
-        return (String) architectureTypeComboBox.getSelectedItem();
     }
 
     public String getSelectedArchitecture() {
