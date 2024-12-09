@@ -8,8 +8,8 @@ public class EscalarPipelineViewer extends JFrame {
     private JPanel pipelinePanel;
     private ArrayList<JLabel> stageLabels;
     private JButton runButton; 
-    private JButton pauseButton; // NOVO: Botão Pause
-    private JButton stopButton;  // NOVO: Botão Stop
+    private JButton pauseButton; // Botão Pause
+    private JButton stopButton;  // Botão Stop
     private JComboBox<String> architectureComboBox; // ComboBox para seleção da arquitetura (IMT, BMT, REF)
     private JComboBox<String> modeComboBox;         // ComboBox para seleção entre ESCALAR e SUPERESCALAR
 
@@ -52,12 +52,10 @@ public class EscalarPipelineViewer extends JFrame {
         runButton = new JButton("Run"); 
         controlPanel.add(runButton);
 
-        // NOVO: Botão Pause
         pauseButton = new JButton("Pause");
         pauseButton.setEnabled(false); // Inicialmente desabilitado
         controlPanel.add(pauseButton);
 
-        // NOVO: Botão Stop
         stopButton = new JButton("Stop");
         stopButton.setEnabled(false); // Inicialmente desabilitado
         controlPanel.add(stopButton);
@@ -80,13 +78,23 @@ public class EscalarPipelineViewer extends JFrame {
         setVisible(true);
     }
 
+    /**
+     * Gera uma cor baseada no índice do contexto.
+     * @param index Índice do contexto
+     * @return Objeto Color correspondente
+     */
     private Color generateColor(int index) {
-        int r = (index * 50) % 256; // Vermelho (ajusta o valor)
+        int r = (index * 50) % 256; // Vermelho
         int g = (index * 100) % 256; // Verde
         int b = (index * 150) % 256; // Azul
         return new Color(r, g, b);
     }
 
+    /**
+     * Atualiza o pipeline ESCALAR no visualizador.
+     * @param pipeline Lista de instruções no pipeline
+     * @param cycle Ciclo atual da simulação
+     */
     public void updatePipeline(ArrayList<Instruction> pipeline, int cycle) {
         for (int i = 0; i < stageLabels.size(); i++) {
             int currentIndex = cycle - i;
@@ -105,6 +113,7 @@ public class EscalarPipelineViewer extends JFrame {
         setTitle("Pipeline - Ciclo " + (cycle + 1));
     }
 
+    // Getters para os botões
     public JButton getRunButton() {
         return runButton;
     }

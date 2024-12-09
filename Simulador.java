@@ -4,9 +4,9 @@ import java.util.ArrayList;
 
 public class Simulador {
 
-    private static SwingWorker<Void, Void> currentWorker; // Referência para o SwingWorker atual
     public static volatile boolean isPaused = false;      // Flag de pausa
-    private static final Object pauseLock = new Object(); // Lock para pausar
+    public static final Object pauseLock = new Object();  // Lock para pausar
+    private static SwingWorker<Void, Void> currentWorker; // Referência para o SwingWorker atual
 
     public static void main(String[] args) {
         // Inicializar o objeto Escalar
@@ -56,7 +56,9 @@ public class Simulador {
                             viewer.getStopButton().setEnabled(false);
                             try {
                                 get(); // Verifica se houve exceções
-                                JOptionPane.showMessageDialog(viewer, "Simulação (Superescalar) concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
+                                if (!isCancelled()) {
+                                    JOptionPane.showMessageDialog(viewer, "Simulação (Superescalar) concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
+                                }
                             } catch (Exception ex) {
                                 if (isCancelled()) {
                                     JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida", JOptionPane.WARNING_MESSAGE);
@@ -99,7 +101,13 @@ public class Simulador {
                             // Pausa a simulação se necessário
                             synchronized (pauseLock) {
                                 while (isPaused) {
-                                    pauseLock.wait();
+                                    try {
+                                        pauseLock.wait();
+                                    } catch (InterruptedException ex) {
+                                        if (isCancelled()) {
+                                            break;
+                                        }
+                                    }
                                 }
                             }
 
@@ -127,8 +135,6 @@ public class Simulador {
                             get(); // Verifica se houve exceções
                             if (!isCancelled()) {
                                 JOptionPane.showMessageDialog(viewer, "Simulação concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
-                            } else {
-                                JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida", JOptionPane.WARNING_MESSAGE);
                             }
                         } catch (Exception ex) {
                             if (isCancelled()) {

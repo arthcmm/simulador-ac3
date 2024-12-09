@@ -1,27 +1,20 @@
-import java.io.*;
+import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.util.ArrayList;
 
 public class Escalar {
 
     public static final String ANSI_RESET = "\u001B[0m";
-    public static final String ANSI_BLACK = "\u001B[30m";
     public static final String ANSI_RED = "\u001B[31m";
     public static final String ANSI_GREEN = "\u001B[32m";
-    public static final String ANSI_YELLOW = "\u001B[33m";
-    public static final String ANSI_BLUE = "\u001B[34m";
-    public static final String ANSI_PURPLE = "\u001B[35m";
-    public static final String ANSI_CYAN = "\u001B[36m";
-    public static final String ANSI_WHITE = "\u001B[37m";
 
     Contexto[] contextos = new Contexto[3];
     ArrayList<Instruction> imtPipeline = new ArrayList<>();
     ArrayList<Instruction> bmtPipeline = new ArrayList<>();
-    ArrayList<Instruction> refPipeline = new ArrayList<>(); 
-    ArrayList<Instruction> supPipeline = new ArrayList<>(); // Novo pipeline superscalar
+    ArrayList<Instruction> refPipeline = new ArrayList<>(); // Pipeline de Referência
     int totalInstructionsIMT = 0;
     int totalInstructionsBMT = 0;
     int totalInstructionsREF = 0;
-    int totalInstructionsSUP = 0;
     int blockSize = 3;
 
     Escalar() {
@@ -29,7 +22,7 @@ public class Escalar {
         ArrayList<Instruction> instructions = new ArrayList<>();
         try {
             for (int i = 0; i < contextos.length; i++) {
-                RandomAccessFile randomAccessFile = new RandomAccessFile("thread" + (i) + ".txt", "r");
+                RandomAccessFile randomAccessFile = new RandomAccessFile("thread" + i + ".txt", "r");
                 while ((instruction = randomAccessFile.readLine()) != null) {
                     String[] operands = instruction.split(" ");
                     if (operands.length < 4) {
@@ -112,24 +105,6 @@ public class Escalar {
         System.out.println();
     }
 
-    // Novo método para criar pipeline SUP (superscalar)
-    // Neste exemplo, ele apenas concatena as instruções de todos os contextos
-    // Na prática, você pode implementar lógica para executar mais de uma instrução por ciclo
-    public void createSUPPipeline() {
-        supPipeline.clear();
-        totalInstructionsSUP = 0;
-        // Suponha que o superscalar apenas agrupe todas as instruções dos contextos (como REF)
-        for (Contexto contexto : contextos) {
-            supPipeline.addAll(contexto.instructions);
-        }
-        totalInstructionsSUP = supPipeline.size();
-        System.out.print("SUP Pipeline: ");
-        for (var i : supPipeline) {
-            System.out.print(i.inst + " ");
-        }
-        System.out.println();
-    }
-
     public void encontraBolha() {
         for (int i = 0; i < bmtPipeline.size(); i++) {
             if (bmtPipeline.get(i).inst.equals("LDW")) {
@@ -163,12 +138,9 @@ public class Escalar {
             pipeline = imtPipeline;
         } else if (multithread == 1) {
             pipeline = bmtPipeline;
-        } else if (multithread == 2) {
-            pipeline = refPipeline;
         } else {
-            pipeline = supPipeline; // SUP é 3
+            pipeline = refPipeline;
         }
-
         int pointer = -1;
         if (pipeline.size() == 0) {
             System.out.println("PIPELINE VAZIO");

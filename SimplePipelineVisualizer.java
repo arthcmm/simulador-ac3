@@ -15,6 +15,7 @@ public class SimplePipelineVisualizer extends JFrame {
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new GridLayout(1, 2, 10, 10));
 
+        // Painel para Decodificado
         JPanel decodedPanel = new JPanel(new GridLayout(4, 1, 10, 10));
         decodedPanel.setBorder(BorderFactory.createTitledBorder("Decodificado"));
         for (int i = 0; i < 4; i++) {
@@ -25,6 +26,7 @@ public class SimplePipelineVisualizer extends JFrame {
             decodedPanel.add(decodedBoxes[i]);
         }
 
+        // Painel para Unidades Funcionais
         JPanel ufPanel = new JPanel(new GridLayout(4, 1, 10, 10));
         ufPanel.setBorder(BorderFactory.createTitledBorder("Unidades Funcionais"));
         for (int i = 0; i < 4; i++) {
@@ -41,10 +43,15 @@ public class SimplePipelineVisualizer extends JFrame {
         setVisible(false); // Será visível quando a simulação for iniciada
     }
 
+    /**
+     * Atualiza as instruções decodificadas no visualizador.
+     * @param decoded Lista de instruções decodificadas neste ciclo
+     */
     public void updateDecoded(ArrayList<Instruction> decoded) {
         for (int i = 0; i < decodedBoxes.length; i++) {
             if (i < decoded.size()) {
-                decodedBoxes[i].setText(decoded.get(i).codigo + " Ctx: " + decoded.get(i).contexto);
+                Instruction instr = decoded.get(i);
+                decodedBoxes[i].setText(instr.codigo + " (Ctx " + instr.contexto + ")");
                 decodedBoxes[i].setBackground(Color.CYAN);
             } else {
                 decodedBoxes[i].setText("Vazio");
@@ -53,13 +60,26 @@ public class SimplePipelineVisualizer extends JFrame {
         }
     }
 
+    /**
+     * Atualiza o estado das unidades funcionais no visualizador.
+     * @param ufStatus Mapeamento do nome da unidade funcional para sua instrução atual
+     */
     public void updateUF(HashMap<String, Instruction> ufStatus) {
         String[] ufNames = { "ALU1", "ALU2", "MEM", "JMP" };
         for (int i = 0; i < ufBoxes.length; i++) {
             Instruction instr = ufStatus.getOrDefault(ufNames[i], new Instruction());
-            ufBoxes[i].setText(ufNames[i] + ": " + instr.codigo + " Ctx: " + instr.contexto);
-            ufBoxes[i].setBackground(instr.codigo.equals("VAZIO") || instr.codigo.equals("NOP") ? Color.LIGHT_GRAY :
-                                     instr.contexto == 1 ? Color.ORANGE : Color.GREEN);
+            if (instr.codigo.equals("VAZIO")) {
+                ufBoxes[i].setText(ufNames[i] + ": VAZIO");
+                ufBoxes[i].setBackground(Color.LIGHT_GRAY);
+            } else {
+                ufBoxes[i].setText(ufNames[i] + ": " + instr.codigo + " (Ctx " + instr.contexto + ")");
+                // Colorir de acordo com o contexto
+                if (instr.contexto == 0) {
+                    ufBoxes[i].setBackground(Color.ORANGE);
+                } else {
+                    ufBoxes[i].setBackground(Color.GREEN);
+                }
+            }
         }
     }
 }

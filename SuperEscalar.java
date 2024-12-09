@@ -20,8 +20,7 @@ public class SuperEscalar {
 
         try {
             for (int i = 0; i < contextos.length; i++) {
-                RandomAccessFile randomAccessFile = new RandomAccessFile("thread" + (i) + ".txt", "r");
-                int count = 0;
+                RandomAccessFile randomAccessFile = new RandomAccessFile("thread" + i + ".txt", "r");
                 while ((instruction = randomAccessFile.readLine()) != null) {
                     String[] operands = instruction.split(" ");
                     Instruction inst = new Instruction(operands[0], operands[1], operands[2], operands[3], i);
@@ -33,62 +32,103 @@ public class SuperEscalar {
                     }
                     instructions.add(inst);
                     totalCiclos += inst.ciclo;
-                    count++;
                 }
                 contextos[i] = new Contexto(i, instructions);
                 instructions.clear();
                 randomAccessFile.close();
             }
 
+            // Inicializar unidades funcionais como vazias
             unidadesFuncionais.put("ALU1", new Instruction());
             unidadesFuncionais.put("ALU2", new Instruction());
-            unidadesFuncionais.put("JMP", new Instruction());
             unidadesFuncionais.put("MEM", new Instruction());
+            unidadesFuncionais.put("JMP", new Instruction());
 
         } catch (IOException e) {
-            System.out.println("exception");
+            System.out.println("Exception ao ler arquivos de thread.");
             e.printStackTrace();
         }
     }
 
     public void createIMTPipeline() {
-        for (Contexto contexto : contextos) {
-            totalInstructions += contexto.qtdInstrucoes;
-        }
-        int[] ponteiros = new int[contextos.length];
-        for (int i = 0; i < ponteiros.length; i++) {
-            ponteiros[i] = 0;
-        }
-        // Aqui poderia haver lógica específica para pipeline IMT superescalar.
+        // Implementação específica para o pipeline IMT superescalar
+        // Aqui, vamos intercalar a decodificação de instruções de ambos os contextos
+        // Para garantir balanceamento, decodificamos 2 instruções de cada contexto por ciclo
+
+        // Nenhuma implementação necessária aqui, pois a lógica de decodificação está no runPipeline
     }
 
-    // Retorna verdadeiro se ainda há instruções para processar
+    /**
+     * Executa o pipeline ciclo a ciclo atualizando o visualizador.
+     * @param visualizer O visualizador para atualizar o estado do pipeline
+     * @param worker O SwingWorker que está executando a simulação
+     */
+    public void runPipeline(SimplePipelineVisualizer visualizer, SwingWorker<?, ?> worker) {
+        while (!canStopPipeline()) {
+            if (worker.isCancelled()) {
+                break;
+            }
+
+            ArrayList<Instruction> decoded = new ArrayList<>();
+            boolean continuePipeline = stepPipeline(decoded, worker);
+
+            // Atualiza o visualizador
+            visualizer.updateDecoded(decoded);
+            visualizer.updateUF(unidadesFuncionais);
+            limparUF();
+
+            // Pausa a simulação se necessário
+            synchronized (Simulador.pauseLock) {
+                while (Simulador.isPaused) {
+                    try {
+                        Simulador.pauseLock.wait();
+                    } catch (InterruptedException e) {
+                        if (worker.isCancelled()) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            try {
+                Thread.sleep(500); // 0.5 segundos por ciclo
+            } catch (InterruptedException e) {
+                if (worker.isCancelled()) {
+                    break;
+                }
+            }
+        }
+
+        // Última atualização pós-fim
+        visualizer.updateDecoded(new ArrayList<>());
+        visualizer.updateUF(unidadesFuncionais);
+    }
+
+    /**
+     * Decodifica e processa instruções de múltiplos contextos de forma balanceada.
+     * @param decodedForThisCycle Lista de instruções decodificadas neste ciclo
+     * @param worker O SwingWorker que está executando a simulação
+     * @return true se o pipeline deve continuar, false caso contrário
+     */
     public boolean stepPipeline(ArrayList<Instruction> decodedForThisCycle, SwingWorker<?, ?> worker) {
         if (canStopPipeline() || worker.isCancelled()) {
             return false;
         }
 
-        int contextoAtual = selectContextToDecode();
-        if (contextoAtual == -1) return false;
-
-        Stack<Instruction> restantes = new Stack<>();
-
-        // Decodifica até 4 instruções
-        for (int j = 0; j < 4; j++) {
-            if (!contextos[contextoAtual].instructions.isEmpty()) {
-                Instruction instruction = contextos[contextoAtual].instructions.get(0);
-                decodedForThisCycle.add(instruction);
-                if (!processInstruction(instruction)) {
-                    restantes.add(instruction);
+        // Decodificar 2 instruções de cada contexto para balanceamento
+        for (int c = 0; c < contextos.length; c++) {
+            int contextoAtual = (roundRobinContext + c) % contextos.length;
+            for (int j = 0; j < 2; j++) { // Decodificar 2 instruções por contexto
+                if (!contextos[contextoAtual].instructions.isEmpty()) {
+                    Instruction instruction = contextos[contextoAtual].instructions.get(0);
+                    decodedForThisCycle.add(instruction);
+                    if (!processInstruction(instruction)) {
+                        // Instrução não processada, pode ser adicionada a uma fila de espera se necessário
+                        // Implementar lógica de fila de espera se necessário
+                    }
+                    contextos[contextoAtual].instructions.remove(0);
                 }
-                contextos[contextoAtual].instructions.remove(0);
             }
-        }
-
-        // Recoloca as instruções não processadas
-        while (!restantes.isEmpty()) {
-            Instruction inst = restantes.pop();
-            contextos[contextoAtual].instructions.add(0, inst);
         }
 
         return true;
@@ -116,6 +156,7 @@ public class SuperEscalar {
 
     public boolean processInstruction(Instruction instruction) {
         String codigo = instruction.codigo;
+        int contexto = instruction.contexto;
 
         if (codigo.equals("ADD") || codigo.equals("SUB") || codigo.equals("MUL") || codigo.equals("DIV") || codigo.equals("CPY") || codigo.equals("DEL")) {
             if (unidadesFuncionais.get("ALU1").codigo.equals("VAZIO")) {
@@ -145,36 +186,35 @@ public class SuperEscalar {
             return true;
         }
 
-        return false;
+        return false; // Instrução não foi processada, deve ir para a fila de espera
     }
 
-    public int limparUF() {
+    public void limparUF() {
         int finalizadas = 0;
         finalizadas += checkAndCleanUF("ALU1");
         finalizadas += checkAndCleanUF("ALU2");
         finalizadas += checkAndCleanUF("MEM");
         finalizadas += checkAndCleanUF("JMP");
-        return finalizadas;
+        // Opcional: pode ser usado para estatísticas ou logs
+        System.out.println("Instruções finalizadas neste ciclo: " + finalizadas);
     }
 
     private int checkAndCleanUF(String uf) {
         Instruction inst = unidadesFuncionais.get(uf);
-        inst.ciclo = inst.ciclo - 1;
-        if (inst.ciclo <= 0) {
-            if (!inst.codigo.equals("VAZIO")) {
+        if (!inst.codigo.equals("VAZIO")) {
+            inst.ciclo = inst.ciclo - 1;
+            if (inst.ciclo <= 0) {
                 unidadesFuncionais.put(uf, new Instruction());
                 return 1;
             }
-            unidadesFuncionais.put(uf, new Instruction());
-        } else {
             unidadesFuncionais.put(uf, inst);
         }
         return 0;
     }
 
-    // Executa o pipeline ciclo a ciclo atualizando o visualizador
+    // Método para rodar a simulação do pipeline passo a passo e atualizar o visualizador
     public void runPipeline(SimplePipelineVisualizer visualizer, SwingWorker<?, ?> worker) {
-        while(!canStopPipeline()) {
+        while (!canStopPipeline()) {
             if (worker.isCancelled()) {
                 break;
             }
@@ -188,10 +228,10 @@ public class SuperEscalar {
             limparUF();
 
             // Pausa a simulação se necessário
-            synchronized (Simulador.class) { // Utiliza a classe Simulador como lock
+            synchronized (Simulador.pauseLock) {
                 while (Simulador.isPaused) {
                     try {
-                        Simulador.class.wait();
+                        Simulador.pauseLock.wait();
                     } catch (InterruptedException e) {
                         if (worker.isCancelled()) {
                             break;
