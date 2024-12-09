@@ -38,7 +38,7 @@ public class SimplePipelineVisualizer extends JFrame {
         add(decodedPanel);
         add(ufPanel);
 
-        setVisible(false);
+        setVisible(false); // Será visível quando a simulação for iniciada
     }
 
     public void updateDecoded(ArrayList<Instruction> decoded) {
@@ -57,7 +57,7 @@ public class SimplePipelineVisualizer extends JFrame {
         String[] ufNames = { "ALU1", "ALU2", "MEM", "JMP" };
         for (int i = 0; i < ufBoxes.length; i++) {
             Instruction instr = ufStatus.getOrDefault(ufNames[i], new Instruction());
-            ufBoxes[i].setText(ufNames[i] + ": " + instr.codigo + " Contexto: " + instr.contexto);
+            ufBoxes[i].setText(ufNames[i] + ": " + instr.codigo + " Ctx: " + instr.contexto);
             ufBoxes[i].setBackground(instr.codigo.equals("VAZIO") || instr.codigo.equals("NOP") ? Color.LIGHT_GRAY :
                                      instr.contexto == 1 ? Color.ORANGE : Color.GREEN);
         }

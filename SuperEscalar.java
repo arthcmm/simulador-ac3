@@ -3,6 +3,7 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Stack;
+import javax.swing.SwingWorker;
 
 public class SuperEscalar {
 
@@ -62,8 +63,8 @@ public class SuperEscalar {
     }
 
     // Retorna verdadeiro se ainda há instruções para processar
-    public boolean stepPipeline(ArrayList<Instruction> decodedForThisCycle) {
-        if (canStopPipeline()) {
+    public boolean stepPipeline(ArrayList<Instruction> decodedForThisCycle, SwingWorker<?, ?> worker) {
+        if (canStopPipeline() || worker.isCancelled()) {
             return false;
         }
 
@@ -97,7 +98,7 @@ public class SuperEscalar {
         for (int i = 0; i < contextos.length; i++) {
             int cIndex = (roundRobinContext + i) % contextos.length;
             if (!contextos[cIndex].instructions.isEmpty()) {
-                roundRobinContext = (cIndex+1)%contextos.length;
+                roundRobinContext = (cIndex + 1) % contextos.length;
                 return cIndex;
             }
         }
@@ -172,19 +173,39 @@ public class SuperEscalar {
     }
 
     // Executa o pipeline ciclo a ciclo atualizando o visualizador
-    public void runPipeline(SimplePipelineVisualizer visualizer) {
+    public void runPipeline(SimplePipelineVisualizer visualizer, SwingWorker<?, ?> worker) {
         while(!canStopPipeline()) {
+            if (worker.isCancelled()) {
+                break;
+            }
+
             ArrayList<Instruction> decoded = new ArrayList<>();
-            stepPipeline(decoded);
+            boolean continuePipeline = stepPipeline(decoded, worker);
+
             // Atualiza o visualizador
             visualizer.updateDecoded(decoded);
             visualizer.updateUF(unidadesFuncionais);
             limparUF();
 
+            // Pausa a simulação se necessário
+            synchronized (Simulador.class) { // Utiliza a classe Simulador como lock
+                while (Simulador.isPaused) {
+                    try {
+                        Simulador.class.wait();
+                    } catch (InterruptedException e) {
+                        if (worker.isCancelled()) {
+                            break;
+                        }
+                    }
+                }
+            }
+
             try {
-                Thread.sleep(500);
+                Thread.sleep(500); // 0.5 segundos por ciclo
             } catch (InterruptedException e) {
-                e.printStackTrace();
+                if (worker.isCancelled()) {
+                    break;
+                }
             }
         }
 

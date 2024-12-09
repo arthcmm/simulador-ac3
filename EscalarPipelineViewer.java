@@ -8,12 +8,14 @@ public class EscalarPipelineViewer extends JFrame {
     private JPanel pipelinePanel;
     private ArrayList<JLabel> stageLabels;
     private JButton runButton; 
+    private JButton pauseButton; // NOVO: Botão Pause
+    private JButton stopButton;  // NOVO: Botão Stop
     private JComboBox<String> architectureComboBox; // ComboBox para seleção da arquitetura (IMT, BMT, REF)
     private JComboBox<String> modeComboBox;         // ComboBox para seleção entre ESCALAR e SUPERESCALAR
 
     public EscalarPipelineViewer() {
         setTitle("Visualização do Pipeline");
-        setSize(800, 400);
+        setSize(1000, 400); // Ajustado para acomodar mais botões
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         // Painel para a linha de estágios
@@ -49,6 +51,16 @@ public class EscalarPipelineViewer extends JFrame {
 
         runButton = new JButton("Run"); 
         controlPanel.add(runButton);
+
+        // NOVO: Botão Pause
+        pauseButton = new JButton("Pause");
+        pauseButton.setEnabled(false); // Inicialmente desabilitado
+        controlPanel.add(pauseButton);
+
+        // NOVO: Botão Stop
+        stopButton = new JButton("Stop");
+        stopButton.setEnabled(false); // Inicialmente desabilitado
+        controlPanel.add(stopButton);
 
         // Adiciona ComboBox para selecionar a arquitetura específica
         architectureComboBox = new JComboBox<>(new String[]{"IMT", "BMT", "REF"});
@@ -95,6 +107,14 @@ public class EscalarPipelineViewer extends JFrame {
 
     public JButton getRunButton() {
         return runButton;
+    }
+
+    public JButton getPauseButton() {
+        return pauseButton;
+    }
+
+    public JButton getStopButton() {
+        return stopButton;
     }
 
     public String getSelectedArchitecture() {

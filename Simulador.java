@@ -4,6 +4,10 @@ import java.util.ArrayList;
 
 public class Simulador {
 
+    private static SwingWorker<Void, Void> currentWorker; // Referência para o SwingWorker atual
+    public static volatile boolean isPaused = false;      // Flag de pausa
+    private static final Object pauseLock = new Object(); // Lock para pausar
+
     public static void main(String[] args) {
         // Inicializar o objeto Escalar
         Escalar escalar = new Escalar();        
@@ -21,7 +25,10 @@ public class Simulador {
         viewer.getRunButton().addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // Desabilita o botão Run e habilita Pause e Stop
                 viewer.getRunButton().setEnabled(false);
+                viewer.getPauseButton().setEnabled(true);
+                viewer.getStopButton().setEnabled(true);
 
                 String selectedArch = viewer.getSelectedArchitecture();
                 String selectedMode = viewer.getSelectedMode();
@@ -34,21 +41,33 @@ public class Simulador {
                     SimplePipelineVisualizer spv = new SimplePipelineVisualizer(superEscalar);
                     spv.setVisible(true);
 
-                    SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+                    // Criar e iniciar o SwingWorker para a simulação superescalar
+                    currentWorker = new SwingWorker<Void, Void>() {
                         @Override
                         protected Void doInBackground() throws Exception {
-                            // Executa a lógica superescalar
-                            superEscalar.runPipeline(spv);
+                            superEscalar.runPipeline(spv, this);
                             return null;
                         }
 
                         @Override
                         protected void done() {
                             viewer.getRunButton().setEnabled(true);
-                            JOptionPane.showMessageDialog(viewer, "Simulação (Superescalar) concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
+                            viewer.getPauseButton().setEnabled(false);
+                            viewer.getStopButton().setEnabled(false);
+                            try {
+                                get(); // Verifica se houve exceções
+                                JOptionPane.showMessageDialog(viewer, "Simulação (Superescalar) concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
+                            } catch (Exception ex) {
+                                if (isCancelled()) {
+                                    JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida", JOptionPane.WARNING_MESSAGE);
+                                } else {
+                                    ex.printStackTrace();
+                                    JOptionPane.showMessageDialog(viewer, "Erro na simulação!", "Erro", JOptionPane.ERROR_MESSAGE);
+                                }
+                            }
                         }
                     };
-                    worker.execute();
+                    currentWorker.execute();
                     return;
                 }
 
@@ -68,16 +87,32 @@ public class Simulador {
 
                 int totalCiclos = selectedPipeline.size() + 5; // 5 estágios
 
-                SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+                // Criar e iniciar o SwingWorker para a simulação escalar
+                currentWorker = new SwingWorker<Void, Void>() {
                     @Override
                     protected Void doInBackground() throws Exception {
                         for (int i = 0; i < totalCiclos; i++) {
+                            if (isCancelled()) {
+                                break;
+                            }
+
+                            // Pausa a simulação se necessário
+                            synchronized (pauseLock) {
+                                while (isPaused) {
+                                    pauseLock.wait();
+                                }
+                            }
+
                             final int cycle = i;
                             SwingUtilities.invokeLater(() -> viewer.updatePipeline(selectedPipeline, cycle));
+
+                            // Simula o avanço dos ciclos
                             try {
-                                Thread.sleep(500); 
+                                Thread.sleep(500); // 0.5 segundos por ciclo
                             } catch (InterruptedException ex) {
-                                ex.printStackTrace();
+                                if (isCancelled()) {
+                                    break;
+                                }
                             }
                         }
                         return null;
@@ -86,13 +121,66 @@ public class Simulador {
                     @Override
                     protected void done() {
                         viewer.getRunButton().setEnabled(true);
-                        JOptionPane.showMessageDialog(viewer, "Simulação concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
+                        viewer.getPauseButton().setEnabled(false);
+                        viewer.getStopButton().setEnabled(false);
+                        try {
+                            get(); // Verifica se houve exceções
+                            if (!isCancelled()) {
+                                JOptionPane.showMessageDialog(viewer, "Simulação concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
+                            } else {
+                                JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida", JOptionPane.WARNING_MESSAGE);
+                            }
+                        } catch (Exception ex) {
+                            if (isCancelled()) {
+                                JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida", JOptionPane.WARNING_MESSAGE);
+                            } else {
+                                ex.printStackTrace();
+                                JOptionPane.showMessageDialog(viewer, "Erro na simulação!", "Erro", JOptionPane.ERROR_MESSAGE);
+                            }
+                        }
                     }
                 };
+                currentWorker.execute();
+            }
+        });
 
-                worker.execute();
+        // Adicionando ActionListener ao botão Pause
+        viewer.getPauseButton().addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (currentWorker == null) {
+                    return;
+                }
+
+                if (!isPaused) {
+                    // Pausar a simulação
+                    isPaused = true;
+                    viewer.getPauseButton().setText("Resume");
+                } else {
+                    // Retomar a simulação
+                    synchronized (pauseLock) {
+                        isPaused = false;
+                        pauseLock.notifyAll();
+                    }
+                    viewer.getPauseButton().setText("Pause");
+                }
+            }
+        });
+
+        // Adicionando ActionListener ao botão Stop
+        viewer.getStopButton().addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (currentWorker != null && !currentWorker.isDone()) {
+                    currentWorker.cancel(true);
+                }
+
+                // Resetar os botões
+                viewer.getRunButton().setEnabled(true);
+                viewer.getPauseButton().setEnabled(false);
+                viewer.getPauseButton().setText("Pause");
+                viewer.getStopButton().setEnabled(false);
             }
         });
     }
-
 }
