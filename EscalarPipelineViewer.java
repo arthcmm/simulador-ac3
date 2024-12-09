@@ -8,7 +8,8 @@ public class EscalarPipelineViewer extends JFrame {
     private JPanel pipelinePanel;
     private ArrayList<JLabel> stageLabels;
     private JButton runButton; 
-    private JComboBox<String> architectureComboBox; // ComboBox para seleção da arquitetura
+    private JComboBox<String> architectureComboBox; // ComboBox para seleção da arquitetura (IMT, BMT, REF)
+    private JComboBox<String> modeComboBox;         // ComboBox para seleção entre ESCALAR e SUPERESCALAR
 
     public EscalarPipelineViewer() {
         setTitle("Visualização do Pipeline");
@@ -54,10 +55,15 @@ public class EscalarPipelineViewer extends JFrame {
         controlPanel.add(new JLabel("Arquitetura:"));
         controlPanel.add(architectureComboBox);
 
+        // Adiciona ComboBox para selecionar modo (ESCALAR ou SUPERESCALAR)
+        modeComboBox = new JComboBox<>(new String[]{"ESCALAR", "SUPERESCALAR"});
+        controlPanel.add(new JLabel("Modo:"));
+        controlPanel.add(modeComboBox);
+
         // Painel de cabeçalho, pipeline e controles
-        add(headerPanel, BorderLayout.NORTH); // Linha dos estágios fica no topo
-        add(pipelinePanel, BorderLayout.CENTER); // Estágios do pipeline ficam no centro
-        add(controlPanel, BorderLayout.SOUTH); // Botão Run e combos ficam na parte inferior
+        add(headerPanel, BorderLayout.NORTH);
+        add(pipelinePanel, BorderLayout.CENTER);
+        add(controlPanel, BorderLayout.SOUTH);
 
         setVisible(true);
     }
@@ -70,11 +76,6 @@ public class EscalarPipelineViewer extends JFrame {
     }
 
     public void updatePipeline(ArrayList<Instruction> pipeline, int cycle) {
-        // Cada ciclo representa um avanço no pipeline
-        // A instrução no ciclo N está no estágio IF
-        // A instrução no ciclo N-1 está no estágio ID, e assim por diante
-
-        // Atualiza cada estágio da pipeline
         for (int i = 0; i < stageLabels.size(); i++) {
             int currentIndex = cycle - i;
             if (currentIndex >= 0 && currentIndex < pipeline.size()) {
@@ -85,13 +86,10 @@ public class EscalarPipelineViewer extends JFrame {
                     stageLabels.get(i).setBackground(Color.GRAY);
                 }
             } else {
-                // Para ciclos fora do alcance, exibe "NOP"
                 stageLabels.get(i).setText("NOP");
                 stageLabels.get(i).setBackground(Color.LIGHT_GRAY);
             }
         }
-
-        // Atualiza o título da janela com o ciclo atual
         setTitle("Pipeline - Ciclo " + (cycle + 1));
     }
 
@@ -101,5 +99,9 @@ public class EscalarPipelineViewer extends JFrame {
 
     public String getSelectedArchitecture() {
         return (String) architectureComboBox.getSelectedItem();
+    }
+
+    public String getSelectedMode() {
+        return (String) modeComboBox.getSelectedItem();
     }
 }

@@ -13,10 +13,6 @@ public class Simulador {
         escalar.printPipeline(1);
         escalar.createREFPipeline(); // Cria REF Pipeline
         escalar.printPipeline(2);
-        // Especificamente para depuração, você pode imprimir os pipelines
-        // escalar.printPipeline(0); // IMT
-        // escalar.printPipeline(1); // BMT
-        // escalar.printPipeline(2); // REF
 
         // Inicializando a interface gráfica
         EscalarPipelineViewer viewer = new EscalarPipelineViewer();
@@ -25,11 +21,38 @@ public class Simulador {
         viewer.getRunButton().addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Desabilita o botão Run para evitar múltiplos cliques
                 viewer.getRunButton().setEnabled(false);
 
-                // Obtém a arquitetura selecionada
                 String selectedArch = viewer.getSelectedArchitecture();
+                String selectedMode = viewer.getSelectedMode();
+
+                if (selectedMode.equals("SUPERESCALAR")) {
+                    // Modo SUPERESCALAR
+                    SuperEscalar superEscalar = new SuperEscalar();
+                    superEscalar.createIMTPipeline();
+
+                    SimplePipelineVisualizer spv = new SimplePipelineVisualizer(superEscalar);
+                    spv.setVisible(true);
+
+                    SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+                        @Override
+                        protected Void doInBackground() throws Exception {
+                            // Executa a lógica superescalar
+                            superEscalar.runPipeline(spv);
+                            return null;
+                        }
+
+                        @Override
+                        protected void done() {
+                            viewer.getRunButton().setEnabled(true);
+                            JOptionPane.showMessageDialog(viewer, "Simulação (Superescalar) concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
+                        }
+                    };
+                    worker.execute();
+                    return;
+                }
+
+                // Caso contrário, modo ESCALAR
                 ArrayList<Instruction> selectedPipeline;
 
                 if (selectedArch.equals("BMT")) {
@@ -38,33 +61,21 @@ public class Simulador {
                 } else if (selectedArch.equals("IMT")) {
                     selectedPipeline = escalar.imtPipeline;
                     System.out.println("Executando IMTPipeline...");
-                } else { // "REF"
+                } else { // REF
                     selectedPipeline = escalar.refPipeline;
                     System.out.println("Executando REF Pipeline...");
                 }
 
-                // Calcula o número total de ciclos necessários
-                int totalCiclos = selectedPipeline.size() + 5; // 5 estágios do pipeline
+                int totalCiclos = selectedPipeline.size() + 5; // 5 estágios
 
-                // Utiliza SwingWorker para executar a simulação em uma thread separada
                 SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
                     @Override
                     protected Void doInBackground() throws Exception {
-                        // Simulando a execução do pipeline
                         for (int i = 0; i < totalCiclos; i++) {
                             final int cycle = i;
-
-                            // Atualiza a pipeline no Event Dispatch Thread
-                            SwingUtilities.invokeLater(new Runnable() {
-                                @Override
-                                public void run() {
-                                    viewer.updatePipeline(selectedPipeline, cycle);
-                                }
-                            });
-
-                            // Simula o avanço dos ciclos
+                            SwingUtilities.invokeLater(() -> viewer.updatePipeline(selectedPipeline, cycle));
                             try {
-                                Thread.sleep(500); // 0.5 segundos por ciclo
+                                Thread.sleep(500); 
                             } catch (InterruptedException ex) {
                                 ex.printStackTrace();
                             }
@@ -74,7 +85,6 @@ public class Simulador {
 
                     @Override
                     protected void done() {
-                        // Reabilita o botão Run após a simulação
                         viewer.getRunButton().setEnabled(true);
                         JOptionPane.showMessageDialog(viewer, "Simulação concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
                     }

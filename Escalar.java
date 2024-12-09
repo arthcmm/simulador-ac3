@@ -16,10 +16,12 @@ public class Escalar {
     Contexto[] contextos = new Contexto[3];
     ArrayList<Instruction> imtPipeline = new ArrayList<>();
     ArrayList<Instruction> bmtPipeline = new ArrayList<>();
-    ArrayList<Instruction> refPipeline = new ArrayList<>(); // Pipeline de Referência
+    ArrayList<Instruction> refPipeline = new ArrayList<>(); 
+    ArrayList<Instruction> supPipeline = new ArrayList<>(); // Novo pipeline superscalar
     int totalInstructionsIMT = 0;
     int totalInstructionsBMT = 0;
     int totalInstructionsREF = 0;
+    int totalInstructionsSUP = 0;
     int blockSize = 3;
 
     Escalar() {
@@ -110,6 +112,24 @@ public class Escalar {
         System.out.println();
     }
 
+    // Novo método para criar pipeline SUP (superscalar)
+    // Neste exemplo, ele apenas concatena as instruções de todos os contextos
+    // Na prática, você pode implementar lógica para executar mais de uma instrução por ciclo
+    public void createSUPPipeline() {
+        supPipeline.clear();
+        totalInstructionsSUP = 0;
+        // Suponha que o superscalar apenas agrupe todas as instruções dos contextos (como REF)
+        for (Contexto contexto : contextos) {
+            supPipeline.addAll(contexto.instructions);
+        }
+        totalInstructionsSUP = supPipeline.size();
+        System.out.print("SUP Pipeline: ");
+        for (var i : supPipeline) {
+            System.out.print(i.inst + " ");
+        }
+        System.out.println();
+    }
+
     public void encontraBolha() {
         for (int i = 0; i < bmtPipeline.size(); i++) {
             if (bmtPipeline.get(i).inst.equals("LDW")) {
@@ -143,9 +163,12 @@ public class Escalar {
             pipeline = imtPipeline;
         } else if (multithread == 1) {
             pipeline = bmtPipeline;
-        } else {
+        } else if (multithread == 2) {
             pipeline = refPipeline;
+        } else {
+            pipeline = supPipeline; // SUP é 3
         }
+
         int pointer = -1;
         if (pipeline.size() == 0) {
             System.out.println("PIPELINE VAZIO");
