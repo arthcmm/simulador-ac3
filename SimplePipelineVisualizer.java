@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 public class SimplePipelineVisualizer extends JFrame {
-    private JLabel[] decodedBoxes = new JLabel[4];
-    private JLabel[] ufBoxes = new JLabel[4];
+    public int limBoxes = 5;
+    private JLabel[] ciclosBoxes = new JLabel[limBoxes];
+    private JLabel[][] ufBoxes = new JLabel[4][limBoxes];
     SuperEscalar superEscalar;
 
     public SimplePipelineVisualizer(SuperEscalar superEscalar) {
@@ -14,72 +15,92 @@ public class SimplePipelineVisualizer extends JFrame {
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setLayout(new GridLayout(1, 2, 10, 10));
-
-        // Painel para Decodificado
-        JPanel decodedPanel = new JPanel(new GridLayout(4, 1, 10, 10));
-        decodedPanel.setBorder(BorderFactory.createTitledBorder("Decodificado"));
-        for (int i = 0; i < 4; i++) {
-            decodedBoxes[i] = new JLabel("Vazio", SwingConstants.CENTER);
-            decodedBoxes[i].setOpaque(true);
-            decodedBoxes[i].setBackground(Color.LIGHT_GRAY);
-            decodedBoxes[i].setBorder(BorderFactory.createLineBorder(Color.BLACK));
-            decodedPanel.add(decodedBoxes[i]);
+        JPanel ciclos = new JPanel(new GridLayout(5, 1, 10, 10));
+        ciclos.setBorder(BorderFactory.createTitledBorder("Ciclo"));
+        for (int i = 0; i < 5; i++) {
+            ciclosBoxes[i] = new JLabel("Vazio", SwingConstants.CENTER);
+            ciclosBoxes[i].setOpaque(true);
+            ciclosBoxes[i].setBackground(Color.LIGHT_GRAY);
+            ciclosBoxes[i].setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            ciclos.add(ciclosBoxes[i]);
+        }
+        add(ciclos);
+        JPanel ALU1 = new JPanel(new GridLayout(5, 1, 10, 10));
+        ALU1.setBorder(BorderFactory.createTitledBorder("ALU1"));
+        for (int i = 0; i < 5; i++) {
+            ufBoxes[0][i] = new JLabel("Vazio", SwingConstants.CENTER);
+            ufBoxes[0][i].setOpaque(true);
+            ufBoxes[0][i].setBackground(Color.LIGHT_GRAY);
+            ufBoxes[0][i].setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            ALU1.add(ufBoxes[0][i]);
+        }
+        JPanel ALU2 = new JPanel(new GridLayout(5, 1, 10, 10));
+        ALU2.setBorder(BorderFactory.createTitledBorder("ALU2"));
+        for (int i = 0; i < 5; i++) {
+            ufBoxes[1][i] = new JLabel("Vazio", SwingConstants.CENTER);
+            ufBoxes[1][i].setOpaque(true);
+            ufBoxes[1][i].setBackground(Color.LIGHT_GRAY);
+            ufBoxes[1][i].setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            ALU2.add(ufBoxes[1][i]);
+        }
+        JPanel MEM = new JPanel(new GridLayout(5, 1, 10, 10));
+        MEM.setBorder(BorderFactory.createTitledBorder("MEM"));
+        for (int i = 0; i < 5; i++) {
+            ufBoxes[2][i] = new JLabel("Vazio", SwingConstants.CENTER);
+            ufBoxes[2][i].setOpaque(true);
+            ufBoxes[2][i].setBackground(Color.LIGHT_GRAY);
+            ufBoxes[2][i].setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            MEM.add(ufBoxes[2][i]);
+        }
+        JPanel JMP = new JPanel(new GridLayout(5, 1, 10, 10));
+        JMP.setBorder(BorderFactory.createTitledBorder("JMP"));
+        for (int i = 0; i < 5; i++) {
+            ufBoxes[3][i] = new JLabel("Vazio", SwingConstants.CENTER);
+            ufBoxes[3][i].setOpaque(true);
+            ufBoxes[3][i].setBackground(Color.LIGHT_GRAY);
+            ufBoxes[3][i].setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            JMP.add(ufBoxes[3][i]);
         }
 
-        // Painel para Unidades Funcionais
-        JPanel ufPanel = new JPanel(new GridLayout(4, 1, 10, 10));
-        ufPanel.setBorder(BorderFactory.createTitledBorder("Unidades Funcionais"));
-        for (int i = 0; i < 4; i++) {
-            ufBoxes[i] = new JLabel("Vazio", SwingConstants.CENTER);
-            ufBoxes[i].setOpaque(true);
-            ufBoxes[i].setBackground(Color.LIGHT_GRAY);
-            ufBoxes[i].setBorder(BorderFactory.createLineBorder(Color.BLACK));
-            ufPanel.add(ufBoxes[i]);
-        }
-
-        add(decodedPanel);
-        add(ufPanel);
+        add(ALU1);
+        add(ALU2);
+        add(MEM);
+        add(JMP);
 
         setVisible(false); // Será visível quando a simulação for iniciada
     }
 
-    /**
-     * Atualiza as instruções decodificadas no visualizador.
-     * @param decoded Lista de instruções decodificadas neste ciclo
-     */
-    public void updateDecoded(ArrayList<Instruction> decoded) {
-        for (int i = 0; i < decodedBoxes.length; i++) {
-            if (i < decoded.size()) {
-                Instruction instr = decoded.get(i);
-                decodedBoxes[i].setText(instr.codigo + " (Ctx " + instr.contexto + ")");
-                decodedBoxes[i].setBackground(Color.CYAN);
+    public void updateUfCerto(ArrayList<Instruction> instructions, int ciclo) {
+        puxaPraBaixo();
+        for (int i = 0; i < instructions.size(); i++) {
+            Instruction instr = instructions.get(i);
+            ciclosBoxes[0].setText("Ciclo : " + ciclo);
+            ;
+            if (instr.codigo.equals("BUB") || instr.codigo.equals("VAZIO")) {
+                ufBoxes[i][0].setText(" BUB");
+                ufBoxes[i][0].setBackground(Color.RED);
             } else {
-                decodedBoxes[i].setText("Vazio");
-                decodedBoxes[i].setBackground(Color.LIGHT_GRAY);
-            }
-        }
-    }
-
-    /**
-     * Atualiza o estado das unidades funcionais no visualizador.
-     * @param ufStatus Mapeamento do nome da unidade funcional para sua instrução atual
-     */
-    public void updateUF(HashMap<String, Instruction> ufStatus) {
-        String[] ufNames = { "ALU1", "ALU2", "MEM", "JMP" };
-        for (int i = 0; i < ufBoxes.length; i++) {
-            Instruction instr = ufStatus.getOrDefault(ufNames[i], new Instruction());
-            if (instr.codigo.equals("VAZIO")) {
-                ufBoxes[i].setText(ufNames[i] + ": VAZIO");
-                ufBoxes[i].setBackground(Color.LIGHT_GRAY);
-            } else {
-                ufBoxes[i].setText(ufNames[i] + ": " + instr.codigo + " (Ctx " + instr.contexto + ")");
+                ufBoxes[i][0].setText(instr.codigo + " " + instr.dest + ", " + instr.op1 + ", " + instr.op2
+                        + " (Thread " + instr.contexto + ")");
                 // Colorir de acordo com o contexto
                 if (instr.contexto == 0) {
-                    ufBoxes[i].setBackground(Color.ORANGE);
+                    ufBoxes[i][0].setBackground(Color.ORANGE);
                 } else {
-                    ufBoxes[i].setBackground(Color.GREEN);
+                    ufBoxes[i][0].setBackground(Color.GREEN);
                 }
             }
         }
     }
+
+    private void puxaPraBaixo() {
+        for (int i = limBoxes - 1; i > 0; i--) {
+            ciclosBoxes[i].setText(ciclosBoxes[i - 1].getText());
+            
+            for (int j = 0; j < 4; j++) {
+                ufBoxes[j][i].setText(ufBoxes[j][i - 1].getText());
+                ufBoxes[j][i].setBackground(ufBoxes[j][i - 1].getBackground());
+            }
+        }
+    }
+    
 }

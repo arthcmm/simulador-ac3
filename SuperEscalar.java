@@ -14,6 +14,7 @@ public class SuperEscalar {
     int totalCiclos = 0;
     public HashMap<String, Instruction> unidadesFuncionais = new HashMap<>();
     private int roundRobinContext = 0;
+    ArrayList<ArrayList<Instruction>> instructionsCerto = new ArrayList<>();
 
     public SuperEscalar() {
         String instruction;
@@ -46,7 +47,7 @@ public class SuperEscalar {
             unidadesFuncionais.put("JMP", new Instruction());
 
             //VERDADEIRO PIPELINE ESTÁ AQUI :)
-            calculateThreadSequenceNotSMT(contextos, 1);
+            instructionsCerto=calculateThreadSequenceNotSMT(contextos, 1);
 
         } catch (IOException e) {
             System.out.println("Exception ao ler arquivos de thread.");
@@ -69,20 +70,8 @@ public class SuperEscalar {
      * @param worker O SwingWorker que está executando a simulação
      */
     public void runPipeline(SimplePipelineVisualizer visualizer, SwingWorker<?, ?> worker) {
-        while (!canStopPipeline()) {
-            if (worker.isCancelled()) {
-                break;
-            }
-
-            ArrayList<Instruction> decoded = new ArrayList<>();
-            boolean continuePipeline = stepPipeline(decoded, worker);
-
-            // Atualiza o visualizador
-            visualizer.updateDecoded(decoded);
-            visualizer.updateUF(unidadesFuncionais);
-            limparUF();
-
-            // Pausa a simulação se necessário
+        for(int i = 0; i<instructionsCerto.size();i++){
+            visualizer.updateUfCerto(instructionsCerto.get(i),i+1);
             synchronized (Simulador.pauseLock) {
                 while (Simulador.isPaused) {
                     try {
@@ -94,7 +83,6 @@ public class SuperEscalar {
                     }
                 }
             }
-
             try {
                 Thread.sleep(500); // 0.5 segundos por ciclo
             } catch (InterruptedException e) {
@@ -103,10 +91,6 @@ public class SuperEscalar {
                 }
             }
         }
-
-        // Última atualização pós-fim
-        visualizer.updateDecoded(new ArrayList<>());
-        visualizer.updateUF(unidadesFuncionais);
     }
 
     /**

@@ -7,11 +7,11 @@ public class EscalarPipelineViewer extends JFrame {
 
     private JPanel pipelinePanel;
     private ArrayList<JLabel> stageLabels;
-    private JButton runButton; 
+    private JButton runButton;
     private JButton pauseButton; // Botão Pause
-    private JButton stopButton;  // Botão Stop
+    private JButton stopButton; // Botão Stop
     private JComboBox<String> architectureComboBox; // ComboBox para seleção da arquitetura (IMT, BMT, REF)
-    private JComboBox<String> modeComboBox;         // ComboBox para seleção entre ESCALAR e SUPERESCALAR
+    private JComboBox<String> modeComboBox; // ComboBox para seleção entre ESCALAR e SUPERESCALAR
 
     public EscalarPipelineViewer() {
         setTitle("Visualização do Pipeline");
@@ -49,7 +49,7 @@ public class EscalarPipelineViewer extends JFrame {
         JPanel controlPanel = new JPanel();
         controlPanel.setLayout(new FlowLayout());
 
-        runButton = new JButton("Run"); 
+        runButton = new JButton("Run");
         controlPanel.add(runButton);
 
         pauseButton = new JButton("Pause");
@@ -61,12 +61,12 @@ public class EscalarPipelineViewer extends JFrame {
         controlPanel.add(stopButton);
 
         // Adiciona ComboBox para selecionar a arquitetura específica
-        architectureComboBox = new JComboBox<>(new String[]{"IMT", "BMT", "REF"});
+        architectureComboBox = new JComboBox<>(new String[] { "IMT", "BMT", "REF" });
         controlPanel.add(new JLabel("Arquitetura:"));
         controlPanel.add(architectureComboBox);
 
         // Adiciona ComboBox para selecionar modo (ESCALAR ou SUPERESCALAR)
-        modeComboBox = new JComboBox<>(new String[]{"ESCALAR", "SUPERESCALAR"});
+        modeComboBox = new JComboBox<>(new String[] { "ESCALAR", "SUPERESCALAR" });
         controlPanel.add(new JLabel("Modo:"));
         controlPanel.add(modeComboBox);
 
@@ -80,6 +80,7 @@ public class EscalarPipelineViewer extends JFrame {
 
     /**
      * Gera uma cor baseada no índice do contexto.
+     * 
      * @param index Índice do contexto
      * @return Objeto Color correspondente
      */
@@ -92,18 +93,21 @@ public class EscalarPipelineViewer extends JFrame {
 
     /**
      * Atualiza o pipeline ESCALAR no visualizador.
+     * 
      * @param pipeline Lista de instruções no pipeline
-     * @param cycle Ciclo atual da simulação
+     * @param cycle    Ciclo atual da simulação
      */
     public void updatePipeline(ArrayList<Instruction> pipeline, int cycle) {
         for (int i = 0; i < stageLabels.size(); i++) {
             int currentIndex = cycle - i;
             if (currentIndex >= 0 && currentIndex < pipeline.size()) {
                 Instruction instr = pipeline.get(currentIndex);
-                stageLabels.get(i).setText(instr.inst + " (Ctx " + instr.contexto + ")");
+                stageLabels.get(i).setText(instr.codigo + " " + instr.dest + ", " + instr.op1 + ", " + instr.op2
+                        + " (Thread " + instr.contexto + ")");
                 stageLabels.get(i).setBackground(generateColor(instr.contexto + 1));
                 if (instr.inst.equals("BUB")) {
-                    stageLabels.get(i).setBackground(Color.GRAY);
+                    stageLabels.get(i).setText(" BUB");
+                    stageLabels.get(i).setBackground(Color.RED);
                 }
             } else {
                 stageLabels.get(i).setText("NOP");
