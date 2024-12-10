@@ -377,8 +377,6 @@ public class SuperEscalar {
                     }
                 }
             }
-            System.out.println("Thread " + threadNumber + ":" + queues.get("ALU1").toString());
-            System.out.println("Thread " + threadNumber + ":" + queues.get("ALU2").toString());
             allQueues[threadNumber] = queues;
         }
         int[] ponteiros = new int[numberOfThreads];
