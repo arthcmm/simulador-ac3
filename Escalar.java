@@ -137,9 +137,15 @@ public class Escalar {
                 if (currentIndex >= 0 && currentIndex < pipeline.size()) {
                     Instruction instr = pipeline.get(currentIndex);
                     String color = (instr.contexto == 0) ? ANSI_RED : ANSI_GREEN;
-                    System.out.print(color + "| " + instr.inst + " |" + ANSI_RESET);
+                    if (instr.inst.equals("BUB")) {
+                        color = ANSI_BLACK;
+                        System.out.print(color + "| " + instr.inst + "          |" + ANSI_RESET);
+                    } else {
+                        System.out.print(color + "| " + instr.inst + " " + instr.dest + " " + instr.op1 + " "
+                                + instr.op2 + " |" + ANSI_RESET);
+                    }
                 } else {
-                    System.out.print("| NOP |");
+                    System.out.print("| NOP          |");
 
                 }
 
