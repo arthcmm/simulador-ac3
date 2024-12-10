@@ -1,5 +1,4 @@
 import java.awt.*;
-import java.awt.event.*;
 import javax.swing.*;
 import java.util.ArrayList;
 
@@ -13,10 +12,21 @@ public class EscalarPipelineViewer extends JFrame {
     private JComboBox<String> architectureComboBox; // ComboBox para seleção da arquitetura (IMT, BMT, REF)
     private JComboBox<String> modeComboBox;         // ComboBox para seleção entre ESCALAR e SUPERESCALAR
 
+    // Novas labels para as métricas
+    private JLabel cpiLabel;
+    private JLabel totalCyclesLabel;
+    private JLabel bubbleCyclesLabel;
+
+    // Variáveis para armazenar os valores das métricas
+    private double cpi = 0.0;
+    private int totalCycles = 0;
+    private int bubbleCycles = 0;
+
     public EscalarPipelineViewer() {
         setTitle("Visualização do Pipeline");
-        setSize(1000, 400); // Ajustado para acomodar mais botões
+        setSize(1200, 500); // Ajustado para acomodar melhor os componentes
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new BorderLayout(10, 10)); // Adiciona espaçamento entre os componentes
 
         // Painel para a linha de estágios
         JPanel headerPanel = new JPanel();
@@ -27,6 +37,7 @@ public class EscalarPipelineViewer extends JFrame {
             headerLabel.setOpaque(true);
             headerLabel.setBackground(Color.GRAY);
             headerLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            headerLabel.setFont(new Font("Arial", Font.BOLD, 14)); // Aumenta a fonte para melhor visibilidade
             headerPanel.add(headerLabel);
         }
 
@@ -41,9 +52,34 @@ public class EscalarPipelineViewer extends JFrame {
             label.setOpaque(true);
             label.setBackground(Color.LIGHT_GRAY);
             label.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+            label.setFont(new Font("Arial", Font.PLAIN, 12)); // Ajusta a fonte
             pipelinePanel.add(label);
             stageLabels.add(label);
         }
+
+        // Painel para as métricas
+        JPanel metricsPanel = new JPanel();
+        metricsPanel.setLayout(new FlowLayout(FlowLayout.LEFT, 20, 5)); // Layout horizontal com espaçamento
+        metricsPanel.setBorder(BorderFactory.createTitledBorder("Métricas de Desempenho"));
+
+        cpiLabel = new JLabel("CPI: 0.0");
+        bubbleCyclesLabel = new JLabel("Ciclos de Bolha: 0");
+        totalCyclesLabel = new JLabel("Total de Ciclos: 0");
+
+        // Ajusta a fonte das métricas
+        cpiLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        bubbleCyclesLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        totalCyclesLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+
+        metricsPanel.add(cpiLabel);
+        metricsPanel.add(bubbleCyclesLabel);
+        metricsPanel.add(totalCyclesLabel);
+
+        // Painel combinado para pipeline e métricas
+        JPanel pipelineAndMetricsPanel = new JPanel();
+        pipelineAndMetricsPanel.setLayout(new BorderLayout());
+        pipelineAndMetricsPanel.add(pipelinePanel, BorderLayout.CENTER);
+        pipelineAndMetricsPanel.add(metricsPanel, BorderLayout.SOUTH); // Métricas abaixo do pipeline
 
         // Painel para os controles
         JPanel controlPanel = new JPanel();
@@ -70,9 +106,9 @@ public class EscalarPipelineViewer extends JFrame {
         controlPanel.add(new JLabel("Modo:"));
         controlPanel.add(modeComboBox);
 
-        // Painel de cabeçalho, pipeline e controles
+        // Layout principal
         add(headerPanel, BorderLayout.NORTH);
-        add(pipelinePanel, BorderLayout.CENTER);
+        add(pipelineAndMetricsPanel, BorderLayout.CENTER); // Pipeline e métricas no centro
         add(controlPanel, BorderLayout.SOUTH);
 
         setVisible(true);
@@ -111,6 +147,22 @@ public class EscalarPipelineViewer extends JFrame {
             }
         }
         setTitle("Pipeline - Ciclo " + (cycle + 1));
+    }
+
+    // Métodos para atualizar as métricas
+    public void updateCPI(double cpi) {
+        this.cpi = cpi;
+        cpiLabel.setText(String.format("CPI: %.2f", cpi));
+    }
+
+    public void updateTotalCycles(int totalCycles) {
+        this.totalCycles = totalCycles;
+        totalCyclesLabel.setText("Total de Ciclos: " + totalCycles);
+    }
+
+    public void updateBubbleCycles(int bubbleCycles) {
+        this.bubbleCycles = bubbleCycles;
+        bubbleCyclesLabel.setText("Ciclos de Bolha: " + bubbleCycles);
     }
 
     // Getters para os botões

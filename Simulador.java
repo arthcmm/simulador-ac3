@@ -89,6 +89,11 @@ public class Simulador {
 
                 int totalCiclos = selectedPipeline.size() + 5; // 5 estágios
 
+                // Inicializar contadores de métricas
+                final int[] totalCycles = {0};
+                final int[] bubbleCycles = {0};
+                final int[] executedInstructions = {0};
+
                 // Criar e iniciar o SwingWorker para a simulação escalar
                 currentWorker = new SwingWorker<Void, Void>() {
                     @Override
@@ -113,6 +118,28 @@ public class Simulador {
 
                             final int cycle = i;
                             SwingUtilities.invokeLater(() -> viewer.updatePipeline(selectedPipeline, cycle));
+
+                            // Atualizar os contadores
+                            totalCycles[0]++;
+                            // Verificar se há bolhas (BUB) no ciclo atual
+                            if (selectedPipeline.size() > cycle) {
+                                Instruction instr = selectedPipeline.get(cycle);
+                                if (instr.inst.equals("BUB")) {
+                                    bubbleCycles[0]++;
+                                } else {
+                                    executedInstructions[0]++;
+                                }
+                            }
+
+                            // Calcular CPI
+                            double cpi = executedInstructions[0] > 0 ? (double) totalCycles[0] / executedInstructions[0] : 0.0;
+
+                            // Atualizar as métricas na interface gráfica
+                            SwingUtilities.invokeLater(() -> {
+                                viewer.updateTotalCycles(totalCycles[0]);
+                                viewer.updateBubbleCycles(bubbleCycles[0]);
+                                viewer.updateCPI(cpi);
+                            });
 
                             // Simula o avanço dos ciclos
                             try {
