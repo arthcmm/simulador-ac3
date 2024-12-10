@@ -25,6 +25,9 @@ public class Simulador {
         viewer.getRunButton().addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                // Garantir que a flag de pausa esteja desativada ao iniciar uma nova simulação
+                isPaused = false;
+
                 // Desabilita o botão Run e habilita Pause e Stop
                 viewer.getRunButton().setEnabled(false);
                 viewer.getPauseButton().setEnabled(true);
@@ -51,9 +54,16 @@ public class Simulador {
 
                         @Override
                         protected void done() {
+                            // Redefinir a flag de pausa
+                            isPaused = false;
+                            synchronized (pauseLock) {
+                                pauseLock.notifyAll();
+                            }
+
                             viewer.getRunButton().setEnabled(true);
                             viewer.getPauseButton().setEnabled(false);
                             viewer.getStopButton().setEnabled(false);
+                            viewer.getPauseButton().setText("Pause");
                             try {
                                 get(); // Verifica se houve exceções
                                 if (!isCancelled()) {
@@ -155,9 +165,16 @@ public class Simulador {
 
                     @Override
                     protected void done() {
+                        // Redefinir a flag de pausa
+                        isPaused = false;
+                        synchronized (pauseLock) {
+                            pauseLock.notifyAll();
+                        }
+
                         viewer.getRunButton().setEnabled(true);
                         viewer.getPauseButton().setEnabled(false);
                         viewer.getStopButton().setEnabled(false);
+                        viewer.getPauseButton().setText("Pause");
                         try {
                             get(); // Verifica se houve exceções
                             if (!isCancelled()) {
@@ -206,6 +223,12 @@ public class Simulador {
             public void actionPerformed(ActionEvent e) {
                 if (currentWorker != null && !currentWorker.isDone()) {
                     currentWorker.cancel(true);
+                }
+                
+                // Redefinir a flag de pausa e notificar todas as threads aguardando
+                isPaused = false;
+                synchronized (pauseLock) {
+                    pauseLock.notifyAll();
                 }
 
                 // Resetar os botões
