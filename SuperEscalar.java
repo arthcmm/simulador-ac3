@@ -198,6 +198,7 @@ public class SuperEscalar {
             int blockSize) {
         int numberOfThreads = threads.length;
         ArrayList<ArrayList<Instruction>> instructions = new ArrayList<>();
+        @SuppressWarnings("unchecked")
         HashMap<String, Instruction[]>[] allQueues = new HashMap[numberOfThreads];
         for (int threadNumber = 0; threadNumber < numberOfThreads; threadNumber++) {
             HashMap<String, Instruction[]> queues = new HashMap<>();
@@ -286,9 +287,13 @@ public class SuperEscalar {
                             p++;
                         }
                         if (queues.get("ALU1")[p] == null) {
-                            queues.get("ALU1")[p] = instruction;
+                            for (int c = 0; c < instruction.ciclo; c++) {
+                                queues.get("ALU1")[p + c] = instruction;
+                            }
                         } else {
-                            queues.get("ALU2")[p] = instruction;
+                            for (int c = 0; c < instruction.ciclo; c++) {
+                                queues.get("ALU2")[p + c] = instruction;
+                            }
                         }
                     } else {
                         int p = 0;
@@ -324,9 +329,13 @@ public class SuperEscalar {
                                 p++;
                             }
                             if (queues.get("ALU1")[p] == null) {
-                                queues.get("ALU1")[p] = instruction;
+                                for (int c = 0; c < instruction.ciclo; c++) {
+                                    queues.get("ALU1")[p + c] = instruction;
+                                }
                             } else {
-                                queues.get("ALU2")[p] = instruction;
+                                for (int c = 0; c < instruction.ciclo; c++) {
+                                    queues.get("ALU2")[p + c] = instruction;
+                                }
                             }
                         } else {
                             p = 0;
@@ -334,9 +343,13 @@ public class SuperEscalar {
                                 p++;
                             }
                             if (queues.get("ALU1")[p] == null) {
-                                queues.get("ALU1")[p] = instruction;
+                                for (int c = 0; c < instruction.ciclo; c++) {
+                                    queues.get("ALU1")[p + c] = instruction;
+                                }
                             } else {
-                                queues.get("ALU2")[p] = instruction;
+                                for (int c = 0; c < instruction.ciclo; c++) {
+                                    queues.get("ALU2")[p + c] = instruction;
+                                }
                             }
                         }
                     } else {
@@ -349,22 +362,87 @@ public class SuperEscalar {
                             p++;
                         }
                         if (foundAt != -1) {
-                            queues.get(uf)[foundAt + 1] = instruction;
+                            for (int c = 0; c < instruction.ciclo; c++) {
+                                queues.get(uf)[foundAt + 1 + c] = instruction;
+                            }
                         } else {
                             p = 0;
                             while (queues.get(uf)[p] != null) {
                                 p++;
                             }
-                            queues.get(uf)[p] = instruction;
+                            for (int c = 0; c < instruction.ciclo; c++) {
+                                queues.get(uf)[p + c] = instruction;
+                            }
                         }
                     }
                 }
             }
+            System.out.println("Thread " + threadNumber + ":" + queues.get("ALU1").toString());
+            System.out.println("Thread " + threadNumber + ":" + queues.get("ALU2").toString());
             allQueues[threadNumber] = queues;
-            System.out.println("Thread " + threadNumber + " queues:" + queues);
         }
-
+        int[] ponteiros = new int[numberOfThreads];
+        boolean[] finished = new boolean[numberOfThreads];
+        for (int i = 0; i < ponteiros.length; i++) {
+            ponteiros[i] = 0;
+            finished[i] = false;
+        }
+        while(!allFinished(finished)){
+            for(int j = 0; j < numberOfThreads; j++){
+                if(finished[j]){
+                    continue;
+                }
+                boolean needRepeatMEM = false;
+                boolean needRepeatJMP = false;
+                for(int k = 0; k < blockSize || needRepeatMEM || needRepeatJMP; k++){
+                    ArrayList<Instruction> currentInstructions = new ArrayList<>();
+                    Instruction[] currentQueue = allQueues[j].get("ALU1");
+                    if(currentQueue[ponteiros[j]] != null){
+                        currentInstructions.add(currentQueue[ponteiros[j]]);
+                    } else {
+                        currentInstructions.add(new Instruction("BUB", "0", "0", "0", j));
+                    }
+                    currentQueue = allQueues[j].get("ALU2");
+                    if(currentQueue[ponteiros[j]] != null){
+                        currentInstructions.add(currentQueue[ponteiros[j]]);
+                    } else {
+                        currentInstructions.add(new Instruction("BUB", "0", "0", "0", j));
+                    }
+                    currentQueue = allQueues[j].get("MEM");
+                    if(currentQueue[ponteiros[j]] != null){
+                        needRepeatMEM = !needRepeatMEM;
+                        currentInstructions.add(currentQueue[ponteiros[j]]);
+                    } else {
+                        currentInstructions.add(new Instruction("BUB", "0", "0", "0", j));
+                    }
+                    currentQueue = allQueues[j].get("JMP");
+                    if(currentQueue[ponteiros[j]] != null){
+                        needRepeatJMP = !needRepeatJMP;
+                        currentInstructions.add(currentQueue[ponteiros[j]]);
+                    } else {
+                        currentInstructions.add(new Instruction("BUB", "0", "0", "0", j));
+                    }
+                    if(currentInstructions.get(0).inst.equals("BUB") && currentInstructions.get(1).inst.equals("BUB") && currentInstructions.get(2).inst.equals("BUB") && currentInstructions.get(3).inst.equals("BUB")){
+                        finished[j] = true;
+                    }else {
+                        instructions.add(currentInstructions);
+                    }
+                    System.out.println("Thread " + j + ": "+ currentInstructions.toString());
+                    ponteiros[j]++;
+                }
+            }
+        }
+        
         return instructions;
+    }
+
+    public boolean allFinished(boolean[] finished) {
+        for (boolean f : finished) {
+            if (!f) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean instructionWrites(String inst) {
@@ -386,7 +464,7 @@ public class SuperEscalar {
                 uf = "MEM";
                 break;
             case "JMP":
-                uf = "MEM";
+                uf = "JMP";
                 break;
             case "NOP":
                 break;

@@ -28,4 +28,10 @@ public class Instruction {
         this.op2 = op2;
         this.contexto = contexto;
     }
+
+    @Override
+    public String toString() {
+        String color = (inst.equals("BUB")) ? "\u001B[31m" : "\u001B[32m";
+        return color + "| " + inst + " |" + "\u001B[0m";
+    }
 }
