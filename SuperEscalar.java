@@ -45,6 +45,7 @@ public class SuperEscalar {
             unidadesFuncionais.put("MEM", new Instruction());
             unidadesFuncionais.put("JMP", new Instruction());
 
+            //VERDADEIRO PIPELINE ESTÁ AQUI :)
             calculateThreadSequenceNotSMT(contextos, 1);
 
         } catch (IOException e) {
@@ -197,12 +198,16 @@ public class SuperEscalar {
     public ArrayList<ArrayList<Instruction>> calculateThreadSequenceNotSMT(Contexto[] threads,
             int blockSize) {
         int numberOfThreads = threads.length;
+        // Instruções finais por ciclo
         ArrayList<ArrayList<Instruction>> instructions = new ArrayList<>();
         @SuppressWarnings("unchecked")
         HashMap<String, Instruction[]>[] allQueues = new HashMap[numberOfThreads];
+        // Lendo as threads
         for (int threadNumber = 0; threadNumber < numberOfThreads; threadNumber++) {
+            //Queue de cada UF
             HashMap<String, Instruction[]> queues = new HashMap<>();
             ArrayList<Instruction> threadInstructions = threads[threadNumber].instructions;
+            // Registrador renomeado
             int currentNewRegister = 65;
             queues.put("ALU1", new Instruction[threadInstructions.size() * 2]);
             queues.put("ALU2", new Instruction[threadInstructions.size() * 2]);
@@ -277,10 +282,12 @@ public class SuperEscalar {
                     }
                 }
             }
+            // Organizando as instruções nas filas, de acordo com as dependências
             for (int i = 0; i < threadInstructions.size(); i++) {
                 Instruction instruction = threadInstructions.get(i);
                 String uf = getUF(instruction.inst);
-                if (instruction.needsToBeAfterId == -1) {
+                // Tem dependencia verdadeira 
+                if (instruction.needsToBeAfterId == -1) { //Não tem dependência verdadeira
                     if (uf.equals("ALU")) {
                         int p = 0;
                         while (queues.get("ALU1")[p] != null && queues.get("ALU2")[p] != null) {
@@ -304,7 +311,7 @@ public class SuperEscalar {
                             queues.get(uf)[p + c] = instruction;
                         }
                     }
-                } else {
+                } else { // Tem dependência verdadeira
                     if (uf.equals("ALU")) {
                         int p = 0;
                         int foundAt = -1;
@@ -390,6 +397,7 @@ public class SuperEscalar {
                 if(finished[j]){
                     continue;
                 }
+                // Mais de um ciclo?
                 boolean needRepeatMEM = false;
                 boolean needRepeatJMP = false;
                 for(int k = 0; k < blockSize || needRepeatMEM || needRepeatJMP; k++){
