@@ -6,7 +6,7 @@ public class Simulador {
 
     public static volatile boolean isPaused = false;      // Flag de pausa
     public static final Object pauseLock = new Object();  // Lock para pausar
-    private static SwingWorker<Void, Void> currentWorker; // Referência para o SwingWorker atual
+    public static SwingWorker<Void, Void> currentWorker;   // Tornado público para acesso externo
 
     public static void main(String[] args) {
         // Inicializar o objeto Escalar
@@ -25,65 +25,33 @@ public class Simulador {
         viewer.getRunButton().addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Garantir que a flag de pausa esteja desativada ao iniciar uma nova simulação
-                isPaused = false;
+                String selectedArch = viewer.getSelectedArchitecture();
+                String selectedMode = viewer.getSelectedMode();
 
+                if (selectedMode.equals("SUPERESCALAR")) {
+                    // Modo SUPERESCALAR: Abrir a visualização superescalar sem iniciar a simulação
+                    SuperEscalar superEscalar = new SuperEscalar();
+                    superEscalar.createIMTPipeline();
+
+                    // Passar a referência da interface principal para a interface superescalar
+                    SimplePipelineVisualizer spv = new SimplePipelineVisualizer(superEscalar, viewer);
+                    spv.setVisible(true);
+
+                    // Desabilitar os botões na interface principal
+                    viewer.getRunButton().setEnabled(false);
+                    viewer.getPauseButton().setEnabled(false);
+                    viewer.getStopButton().setEnabled(false);
+
+                    // Retornar para evitar iniciar a simulação aqui
+                    return;
+                }
+
+                // Caso contrário, modo ESCALAR: Iniciar a simulação normalmente
                 // Desabilita o botão Run e habilita Pause e Stop
                 viewer.getRunButton().setEnabled(false);
                 viewer.getPauseButton().setEnabled(true);
                 viewer.getStopButton().setEnabled(true);
 
-                String selectedArch = viewer.getSelectedArchitecture();
-                String selectedMode = viewer.getSelectedMode();
-
-                if (selectedMode.equals("SUPERESCALAR")) {
-                    // Modo SUPERESCALAR
-                    SuperEscalar superEscalar = new SuperEscalar();
-                    superEscalar.createIMTPipeline();
-
-                    SimplePipelineVisualizer spv = new SimplePipelineVisualizer(superEscalar);
-                    spv.setVisible(true);
-
-                    // Criar e iniciar o SwingWorker para a simulação superescalar
-                    currentWorker = new SwingWorker<Void, Void>() {
-                        @Override
-                        protected Void doInBackground() throws Exception {
-                            superEscalar.runPipeline(spv, this);
-                            return null;
-                        }
-
-                        @Override
-                        protected void done() {
-                            // Redefinir a flag de pausa
-                            isPaused = false;
-                            synchronized (pauseLock) {
-                                pauseLock.notifyAll();
-                            }
-
-                            viewer.getRunButton().setEnabled(true);
-                            viewer.getPauseButton().setEnabled(false);
-                            viewer.getStopButton().setEnabled(false);
-                            viewer.getPauseButton().setText("Pause");
-                            try {
-                                get(); // Verifica se houve exceções
-                                if (!isCancelled()) {
-                                    JOptionPane.showMessageDialog(viewer, "Simulação (Superescalar) concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
-                                }
-                            } catch (Exception ex) {
-                                if (isCancelled()) {
-                                    JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida", JOptionPane.WARNING_MESSAGE);
-                                } else {
-                                    ex.printStackTrace();
-                                    JOptionPane.showMessageDialog(viewer, "Erro na simulação!", "Erro", JOptionPane.ERROR_MESSAGE);
-                                }
-                            }
-                        }
-                    };
-                    currentWorker.execute();
-                    return;
-                }
-
-                // Caso contrário, modo ESCALAR
                 ArrayList<Instruction> selectedPipeline;
 
                 if (selectedArch.equals("BMT")) {
@@ -224,7 +192,7 @@ public class Simulador {
                 if (currentWorker != null && !currentWorker.isDone()) {
                     currentWorker.cancel(true);
                 }
-                
+
                 // Redefinir a flag de pausa e notificar todas as threads aguardando
                 isPaused = false;
                 synchronized (pauseLock) {
