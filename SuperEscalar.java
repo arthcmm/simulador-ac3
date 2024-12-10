@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Queue;
 import java.util.Stack;
 import javax.swing.SwingWorker;
 
@@ -44,6 +45,8 @@ public class SuperEscalar {
             unidadesFuncionais.put("MEM", new Instruction());
             unidadesFuncionais.put("JMP", new Instruction());
 
+            calculateThreadSequenceNotSMT(contextos, 1);
+
         } catch (IOException e) {
             System.out.println("Exception ao ler arquivos de thread.");
             e.printStackTrace();
@@ -60,6 +63,7 @@ public class SuperEscalar {
 
     /**
      * Executa o pipeline ciclo a ciclo atualizando o visualizador.
+     * 
      * @param visualizer O visualizador para atualizar o estado do pipeline
      * @param worker O SwingWorker que está executando a simulação
      */
@@ -106,6 +110,7 @@ public class SuperEscalar {
 
     /**
      * Decodifica e processa instruções de múltiplos contextos de forma balanceada.
+     * 
      * @param decodedForThisCycle Lista de instruções decodificadas neste ciclo
      * @param worker O SwingWorker que está executando a simulação
      * @return true se o pipeline deve continuar, false caso contrário
@@ -189,6 +194,206 @@ public class SuperEscalar {
         return false; // Instrução não foi processada, deve ir para a fila de espera
     }
 
+    public ArrayList<ArrayList<Instruction>> calculateThreadSequenceNotSMT(Contexto[] threads,
+            int blockSize) {
+        int numberOfThreads = threads.length;
+        ArrayList<ArrayList<Instruction>> instructions = new ArrayList<>();
+        HashMap<String, Instruction[]>[] allQueues = new HashMap[numberOfThreads];
+        for (int threadNumber = 0; threadNumber < numberOfThreads; threadNumber++) {
+            HashMap<String, Instruction[]> queues = new HashMap<>();
+            ArrayList<Instruction> threadInstructions = threads[threadNumber].instructions;
+            int currentNewRegister = 65;
+            queues.put("ALU1", new Instruction[threadInstructions.size() * 2]);
+            queues.put("ALU2", new Instruction[threadInstructions.size() * 2]);
+            queues.put("MEM", new Instruction[threadInstructions.size() * 2]);
+            queues.put("JMP", new Instruction[threadInstructions.size() * 2]);
+            for (int i = 0; i < threadInstructions.size(); i++) {
+                Instruction instruction = threadInstructions.get(i);
+                instruction.id = i;
+                String dest = instruction.dest;
+                String op1 = instruction.op1;
+                String op2 = instruction.op2;
+                for (int j = 0; j < i; j++) {
+                    Instruction prevInstruction = threadInstructions.get(j);
+                    switch (instruction.inst) {
+                        case "ADD", "SUB", "MUL", "DIV", "CPY", "DEL":
+                            // Dependencia verdadeira -> Leitura após escrita
+                            if (instructionWrites(prevInstruction.inst)
+                                    && (prevInstruction.dest.equals(op2) || prevInstruction.dest.equals(op1))) {
+                                instruction.needsToBeAfterId = Math.max(prevInstruction.id,
+                                        instruction.needsToBeAfterId);
+                            }
+                            // Dependencia de saída -> Escrita após escrita
+                            if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(dest))) {
+                                instruction.dest = "R" + (char) currentNewRegister;
+                                currentNewRegister++;
+                            }
+                            // Anti-dependência -> Escrita após leitura
+                            if (dest.equals(prevInstruction.op1) || dest.equals(prevInstruction.op2)
+                                    || (instructionReadsInDest(prevInstruction.inst)
+                                            && (prevInstruction.dest.equals(dest)))) {
+                                instruction.dest = "R" + (char) currentNewRegister;
+                                currentNewRegister++;
+                            }
+                            break;
+                        case "LDW":
+                            // Dependencia verdadeira -> Leitura após escrita
+                            if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(op2))) {
+                                instruction.needsToBeAfterId = Math.max(prevInstruction.id,
+                                        instruction.needsToBeAfterId);
+                            }
+                            // Dependencia de saída -> Escrita após escrita
+                            if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(dest))) {
+                                instruction.dest = "R" + (char) currentNewRegister;
+                                currentNewRegister++;
+                            }
+                            // Anti-dependência -> Escrita após leitura
+                            if (dest.equals(prevInstruction.op1) || dest.equals(prevInstruction.op2)
+                                    || (instructionReadsInDest(prevInstruction.inst)
+                                            && (prevInstruction.dest.equals(dest)))) {
+                                instruction.dest = "R" + (char) currentNewRegister;
+                                currentNewRegister++;
+                            }
+                            break;
+                        case "JMP":
+                            // Dependencia verdadeira -> Leitura após escrita
+                            if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(op2)
+                                    || prevInstruction.dest.equals(op1) || prevInstruction.dest.equals(dest))) {
+                                instruction.needsToBeAfterId = Math.max(prevInstruction.id,
+                                        instruction.needsToBeAfterId);
+                            }
+                            break;
+                        case "STW":
+                            // Dependencia verdadeira -> Leitura após escrita
+                            if (instructionWrites(prevInstruction.inst)
+                                    && (prevInstruction.dest.equals(op2) || prevInstruction.dest.equals(dest))) {
+                                instruction.needsToBeAfterId = Math.max(prevInstruction.id,
+                                        instruction.needsToBeAfterId);
+                            }
+                            break;
+                        case "NOP":
+                            break;
+                    }
+                }
+            }
+            for (int i = 0; i < threadInstructions.size(); i++) {
+                Instruction instruction = threadInstructions.get(i);
+                String uf = getUF(instruction.inst);
+                if (instruction.needsToBeAfterId == -1) {
+                    if (uf.equals("ALU")) {
+                        int p = 0;
+                        while (queues.get("ALU1")[p] != null && queues.get("ALU2")[p] != null) {
+                            p++;
+                        }
+                        if (queues.get("ALU1")[p] == null) {
+                            queues.get("ALU1")[p] = instruction;
+                        } else {
+                            queues.get("ALU2")[p] = instruction;
+                        }
+                    } else {
+                        int p = 0;
+                        while (queues.get(uf)[p] != null) {
+                            p++;
+                        }
+                        for (int c = 0; c < instruction.ciclo; c++) {
+                            queues.get(uf)[p + c] = instruction;
+                        }
+                    }
+                } else {
+                    if (uf.equals("ALU")) {
+                        int p = 0;
+                        int foundAt = -1;
+                        while (p < threadInstructions.size()) {
+                            if (queues.get("ALU1")[p] != null
+                                    && queues.get("ALU1")[p].id != instruction.needsToBeAfterId) {
+                                foundAt = p;
+                            }
+                            p++;
+                        }
+                        p = 0;
+                        while (p < threadInstructions.size()) {
+                            if (queues.get("ALU2")[p] != null
+                                    && queues.get("ALU2")[p].id != instruction.needsToBeAfterId) {
+                                foundAt = p;
+                            }
+                            p++;
+                        }
+                        if (foundAt != -1) {
+                            p = foundAt + 1;
+                            while (queues.get("ALU1")[p] != null && queues.get("ALU2")[p] != null) {
+                                p++;
+                            }
+                            if (queues.get("ALU1")[p] == null) {
+                                queues.get("ALU1")[p] = instruction;
+                            } else {
+                                queues.get("ALU2")[p] = instruction;
+                            }
+                        } else {
+                            p = 0;
+                            while (queues.get("ALU1")[p] != null && queues.get("ALU2")[p] != null) {
+                                p++;
+                            }
+                            if (queues.get("ALU1")[p] == null) {
+                                queues.get("ALU1")[p] = instruction;
+                            } else {
+                                queues.get("ALU2")[p] = instruction;
+                            }
+                        }
+                    } else {
+                        int p = 0;
+                        int foundAt = -1;
+                        while (p < threadInstructions.size()) {
+                            if (queues.get(uf)[p] != null && queues.get(uf)[p].id != instruction.needsToBeAfterId) {
+                                foundAt = p;
+                            }
+                            p++;
+                        }
+                        if (foundAt != -1) {
+                            queues.get(uf)[foundAt + 1] = instruction;
+                        } else {
+                            p = 0;
+                            while (queues.get(uf)[p] != null) {
+                                p++;
+                            }
+                            queues.get(uf)[p] = instruction;
+                        }
+                    }
+                }
+            }
+            allQueues[threadNumber] = queues;
+            System.out.println("Thread " + threadNumber + " queues:" + queues);
+        }
+
+        return instructions;
+    }
+
+    public boolean instructionWrites(String inst) {
+        return inst.equals("ADD") || inst.equals("SUB") || inst.equals("MUL") || inst.equals("DIV")
+                || inst.equals("CPY") || inst.equals("LDW");
+    }
+
+    public boolean instructionReadsInDest(String inst) {
+        return inst.equals("JMP") || inst.equals("STW");
+    }
+
+    public String getUF(String inst) {
+        String uf = "";
+        switch (inst) {
+            case "ADD", "SUB", "MUL", "DIV", "CPY", "DEL":
+                uf = "ALU";
+                break;
+            case "LDW", "STW":
+                uf = "MEM";
+                break;
+            case "JMP":
+                uf = "MEM";
+                break;
+            case "NOP":
+                break;
+        }
+        return uf;
+    }
+
     public void limparUF() {
         int finalizadas = 0;
         finalizadas += checkAndCleanUF("ALU1");
@@ -212,45 +417,47 @@ public class SuperEscalar {
         return 0;
     }
 
-    // Método para rodar a simulação do pipeline passo a passo e atualizar o visualizador
-    public void runPipeline(SimplePipelineVisualizer visualizer, SwingWorker<?, ?> worker) {
-        while (!canStopPipeline()) {
-            if (worker.isCancelled()) {
-                break;
-            }
+    // Método para rodar a simulação do pipeline passo a passo e atualizar o
+    // visualizador
+    // public void runPipeline(SimplePipelineVisualizer visualizer, SwingWorker<?,
+    // ?> worker) {
+    // while (!canStopPipeline()) {
+    // if (worker.isCancelled()) {
+    // break;
+    // }
 
-            ArrayList<Instruction> decoded = new ArrayList<>();
-            boolean continuePipeline = stepPipeline(decoded, worker);
+    // ArrayList<Instruction> decoded = new ArrayList<>();
+    // boolean continuePipeline = stepPipeline(decoded, worker);
 
-            // Atualiza o visualizador
-            visualizer.updateDecoded(decoded);
-            visualizer.updateUF(unidadesFuncionais);
-            limparUF();
+    // // Atualiza o visualizador
+    // visualizer.updateDecoded(decoded);
+    // visualizer.updateUF(unidadesFuncionais);
+    // limparUF();
 
-            // Pausa a simulação se necessário
-            synchronized (Simulador.pauseLock) {
-                while (Simulador.isPaused) {
-                    try {
-                        Simulador.pauseLock.wait();
-                    } catch (InterruptedException e) {
-                        if (worker.isCancelled()) {
-                            break;
-                        }
-                    }
-                }
-            }
+    // // Pausa a simulação se necessário
+    // synchronized (Simulador.pauseLock) {
+    // while (Simulador.isPaused) {
+    // try {
+    // Simulador.pauseLock.wait();
+    // } catch (InterruptedException e) {
+    // if (worker.isCancelled()) {
+    // break;
+    // }
+    // }
+    // }
+    // }
 
-            try {
-                Thread.sleep(500); // 0.5 segundos por ciclo
-            } catch (InterruptedException e) {
-                if (worker.isCancelled()) {
-                    break;
-                }
-            }
-        }
+    // try {
+    // Thread.sleep(500); // 0.5 segundos por ciclo
+    // } catch (InterruptedException e) {
+    // if (worker.isCancelled()) {
+    // break;
+    // }
+    // }
+    // }
 
-        // Última atualização pós-fim
-        visualizer.updateDecoded(new ArrayList<>());
-        visualizer.updateUF(unidadesFuncionais);
-    }
+    // // Última atualização pós-fim
+    // visualizer.updateDecoded(new ArrayList<>());
+    // visualizer.updateUF(unidadesFuncionais);
+    // }
 }

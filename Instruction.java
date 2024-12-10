@@ -6,6 +6,8 @@ public class Instruction {
     int contexto;
     String codigo; // Alias para compatibilidade com visualizadores
     int ciclo = 1; // Ciclo restante para a execução
+    int needsToBeAfterId = -1;
+    int id = -1;
 
     // Construtor padrão para instruções vazias
     Instruction() {
