@@ -20,19 +20,19 @@ public class Simulador {
                 String selectedMode = viewer.getSelectedMode();
 
                 if (selectedMode.equals("SUPERESCALAR")) {
-                    // Modo SUPERESCALAR: Abrir a visualização superescalar e iniciar a simulação
+                    // Modo SUPERESCALAR: Abrir a visualização superescalar sem iniciar a simulação
                     SuperEscalar selectedPipeline;
                     if (selectedArch.equals("BMT")) {
-                        System.out.println("Executando BMTPipeline...");
+                        System.out.println("Preparando BMTPipeline para Superescalar...");
                         selectedPipeline = new SuperEscalar(3, 3, false);
                     } else if (selectedArch.equals("IMT")) {
-                        System.out.println("Executando IMTPipeline...");
+                        System.out.println("Preparando IMTPipeline para Superescalar...");
                         selectedPipeline = new SuperEscalar(1, 3, false);
                     } else if (selectedArch.equals("REF")) { // REF
-                        System.out.println("Executando REF Pipeline...");
+                        System.out.println("Preparando REF Pipeline para Superescalar...");
                         selectedPipeline = new SuperEscalar(Integer.MAX_VALUE, 3, false);
                     } else if (selectedArch.equals("SMT")) {
-                        System.out.println("Executando SMTPipeline");
+                        System.out.println("Preparando SMTPipeline para Superescalar");
                         selectedPipeline = new SuperEscalar(0, 3, true);
                     } else {
                         System.out.println("ERRO, não suportado");
@@ -42,44 +42,10 @@ public class Simulador {
                     SimplePipelineVisualizer spv = new SimplePipelineVisualizer(selectedPipeline, viewer);
                     spv.setVisible(true);
 
-                    // Desabilitar/abilitar botões conforme necessário
+                    // Desabilitar o botão Run principal para evitar múltiplas simulações
                     viewer.getRunButton().setEnabled(false);
-                    viewer.getPauseButton().setEnabled(true);
-                    viewer.getStopButton().setEnabled(true);
 
-                    // Criar e iniciar o SwingWorker para a simulação superescalar
-                    currentWorker = new SwingWorker<Void, Void>() {
-                        @Override
-                        protected Void doInBackground() throws Exception {
-                            selectedPipeline.runPipeline(spv, this);
-                            return null;
-                        }
-
-                        @Override
-                        protected void done() {
-                            viewer.getRunButton().setEnabled(true);
-                            viewer.getPauseButton().setEnabled(false);
-                            viewer.getStopButton().setEnabled(false);
-                            try {
-                                get(); // Verifica se houve exceções
-                                if (!isCancelled()) {
-                                    JOptionPane.showMessageDialog(viewer, "Simulação (Superescalar) concluída!", "Fim",
-                                            JOptionPane.INFORMATION_MESSAGE);
-                                }
-                            } catch (Exception ex) {
-                                if (isCancelled()) {
-                                    JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida",
-                                            JOptionPane.WARNING_MESSAGE);
-                                } else {
-                                    ex.printStackTrace();
-                                    JOptionPane.showMessageDialog(viewer, "Erro na simulação!", "Erro",
-                                            JOptionPane.ERROR_MESSAGE);
-                                }
-                            }
-                        }
-                    };
-                    currentWorker.execute();
-                    return;
+                    return; // Encerra a execução para evitar iniciar a simulação aqui
                 }
 
                 // Caso contrário, modo ESCALAR: Iniciar a simulação normalmente
@@ -107,7 +73,7 @@ public class Simulador {
                     selectedPipeline = escalar.refPipeline;
                     System.out.println("Executando REF Pipeline...");
                 } else {
-                    JOptionPane.showMessageDialog(viewer, "Não é  suportado esse modo", "ERRO",
+                    JOptionPane.showMessageDialog(viewer, "Não é suportado esse modo", "ERRO",
                             JOptionPane.ERROR_MESSAGE);
                     return;
                 }

@@ -180,9 +180,7 @@ public class SuperEscalar {
                     } else {
                         currentInstructions.add(new Instruction("BUB", "0", "0", "0", j));
                     }
-                    if (currentInstructions.get(0).inst.equals("BUB") && currentInstructions.get(1).inst.equals("BUB")
-                            && currentInstructions.get(2).inst.equals("BUB")
-                            && currentInstructions.get(3).inst.equals("BUB")) {
+                    if (currentInstructions.stream().allMatch(instr -> instr.inst.equals("BUB"))) {
                         finished[j] = true;
                     } else {
                         instructions.add(currentInstructions);
@@ -233,6 +231,7 @@ public class SuperEscalar {
                 String uf = getUFNameByIndex(ufIndex);
                 boolean ufOccupied = false;
                 int threadIndex = threadInicio;
+                int originalThreadIndex = threadIndex;
                 do {
                     if (finished[threadIndex])
                         continue;
@@ -245,9 +244,9 @@ public class SuperEscalar {
                         ufOccupied = true;
                         break; // Apenas uma thread por UF por ciclo
                     }
-                    threadIndex = (threadIndex + 1) % threads.length;
-                } while (threadInicio != threadIndex);
-                threadInicio = (threadIndex + 1) % threads.length;
+                    threadIndex = (threadIndex + 1) % numberOfThreads;
+                } while (threadIndex != originalThreadIndex);
+                threadInicio = (threadIndex + 1) % numberOfThreads;
                 if (!ufOccupied) {
                     currentCycleInstructions.add(new Instruction("BUB", "0", "0", "0", -1));
                 }
