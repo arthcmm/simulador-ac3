@@ -107,7 +107,8 @@ public class Simulador {
                     selectedPipeline = escalar.refPipeline;
                     System.out.println("Executando REF Pipeline...");
                 } else {
-                    System.out.println("ERRO, não suportado");
+                    JOptionPane.showMessageDialog(viewer, "Não é  suportado esse modo", "ERRO",
+                            JOptionPane.ERROR_MESSAGE);
                     return;
                 }
 
