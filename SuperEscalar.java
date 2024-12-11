@@ -69,7 +69,7 @@ public class SuperEscalar {
                 if (instr.inst.equals("BUB")) {
                     bubbleCycles++;
                 } else if (getUF(instr.inst).equals("MEM") || getUF(instr.inst).equals("JMP")) {
-                    if (jaExecutado.contains(instr.id)) {
+                    if (!jaExecutado.contains(instr.id)) {
                         jaExecutado.add(instr.id);
                         cycleExecutedInstructions++;
                     }
