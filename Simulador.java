@@ -9,8 +9,6 @@ public class Simulador {
     public static SwingWorker<Void, Void> currentWorker; // Tornado público para acesso externo
 
     public static void main(String[] args) {
-        // Inicializar o objeto Escalar
-
         // Inicializando a interface gráfica
         EscalarPipelineViewer viewer = new EscalarPipelineViewer();
 
@@ -22,7 +20,7 @@ public class Simulador {
                 String selectedMode = viewer.getSelectedMode();
 
                 if (selectedMode.equals("SUPERESCALAR")) {
-                    // Modo SUPERESCALAR: Abrir a visualização superescalar sem iniciar a simulação
+                    // Modo SUPERESCALAR: Abrir a visualização superescalar e iniciar a simulação
                     SuperEscalar selectedPipeline;
                     if (selectedArch.equals("BMT")) {
                         System.out.println("Executando BMTPipeline...");
@@ -43,6 +41,11 @@ public class Simulador {
                     // Passar a referência da interface principal para a interface superescalar
                     SimplePipelineVisualizer spv = new SimplePipelineVisualizer(selectedPipeline, viewer);
                     spv.setVisible(true);
+
+                    // Desabilitar/abilitar botões conforme necessário
+                    viewer.getRunButton().setEnabled(false);
+                    viewer.getPauseButton().setEnabled(true);
+                    viewer.getStopButton().setEnabled(true);
 
                     // Criar e iniciar o SwingWorker para a simulação superescalar
                     currentWorker = new SwingWorker<Void, Void>() {

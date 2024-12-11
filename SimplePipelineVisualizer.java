@@ -17,6 +17,16 @@ public class SimplePipelineVisualizer extends JFrame {
     private JButton pauseButtonSuper;
     private JButton stopButtonSuper;
 
+    // Labels para métricas no modo SUPERESCALAR
+    private JLabel ipcLabelSuper;
+    private JLabel totalCyclesLabelSuper;
+    private JLabel bubbleCyclesLabelSuper;
+
+    // Variáveis para armazenar os valores das métricas
+    private double ipc = 0.0;
+    private int totalCycles = 0;
+    private int bubbleCycles = 0;
+
     // Referência para a interface principal
     private EscalarPipelineViewer mainViewer;
 
@@ -54,6 +64,7 @@ public class SimplePipelineVisualizer extends JFrame {
                 ufBoxes[j][i].setOpaque(true);
                 ufBoxes[j][i].setBackground(Color.LIGHT_GRAY);
                 ufBoxes[j][i].setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                ufBoxes[j][i].setFont(new Font("Arial", Font.PLAIN, 12)); // Ajusta a fonte
                 ufPanel.add(ufBoxes[j][i]);
             }
             mainPanel.add(ufPanel);
@@ -67,8 +78,7 @@ public class SimplePipelineVisualizer extends JFrame {
         pauseButtonSuper = new JButton("Pause");
         stopButtonSuper = new JButton("Stop");
 
-        // Inicialmente, Pause e Stop estão desabilitados até que a simulação seja
-        // iniciada
+        // Inicialmente, Pause e Stop estão desabilitados até que a simulação seja iniciada
         runButtonSuper.setEnabled(true);
         pauseButtonSuper.setEnabled(false);
         stopButtonSuper.setEnabled(false);
@@ -77,7 +87,29 @@ public class SimplePipelineVisualizer extends JFrame {
         controlPanelSuper.add(pauseButtonSuper);
         controlPanelSuper.add(stopButtonSuper);
 
-        add(controlPanelSuper, BorderLayout.SOUTH);
+        // Painel de métricas para SUPERESCALAR
+        JPanel metricsPanelSuper = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 5));
+        metricsPanelSuper.setBorder(BorderFactory.createTitledBorder("Métricas de Desempenho (SUPERESCALAR)"));
+
+        ipcLabelSuper = new JLabel("IPC: 0.0");
+        totalCyclesLabelSuper = new JLabel("Total de Ciclos: 0");
+        bubbleCyclesLabelSuper = new JLabel("Ciclos de Bolha: 0");
+
+        // Ajusta a fonte das métricas
+        ipcLabelSuper.setFont(new Font("Arial", Font.PLAIN, 14));
+        totalCyclesLabelSuper.setFont(new Font("Arial", Font.PLAIN, 14));
+        bubbleCyclesLabelSuper.setFont(new Font("Arial", Font.PLAIN, 14));
+
+        metricsPanelSuper.add(ipcLabelSuper);
+        metricsPanelSuper.add(totalCyclesLabelSuper);
+        metricsPanelSuper.add(bubbleCyclesLabelSuper);
+
+        // Painel inferior para controles e métricas
+        JPanel bottomPanel = new JPanel(new BorderLayout());
+        bottomPanel.add(controlPanelSuper, BorderLayout.WEST);
+        bottomPanel.add(metricsPanelSuper, BorderLayout.CENTER);
+
+        add(bottomPanel, BorderLayout.SOUTH); // Adiciona o painel inferior na parte inferior
 
         // Implementar os ActionListeners para os botões
         runButtonSuper.addActionListener(new ActionListener() {
@@ -85,7 +117,7 @@ public class SimplePipelineVisualizer extends JFrame {
             public void actionPerformed(ActionEvent e) {
                 for (int i = limBoxes - 1; i >= 0; i--) {
                     ciclosBoxes[i].setText("Vazio");
-        
+
                     for (int j = 0; j < 4; j++) {
                         ufBoxes[j][i].setText("Vazio");
                         ufBoxes[j][i].setBackground(Color.LIGHT_GRAY);
@@ -232,11 +264,11 @@ public class SimplePipelineVisualizer extends JFrame {
         for (int i = 0; i < instructions.size(); i++) {
             Instruction instr = instructions.get(i);
             ciclosBoxes[0].setText("Ciclo : " + ciclo);
-            if (instr.codigo.equals("BUB") || instr.codigo.equals("VAZIO")) {
+            if (instr.inst.equals("BUB") || instr.inst.equals("VAZIO")) {
                 ufBoxes[i][0].setText(" BUB");
                 ufBoxes[i][0].setBackground(Color.RED);
             } else {
-                ufBoxes[i][0].setText("<html>" + instr.codigo + " " + instr.dest + ", " + instr.op1 + ", " + instr.op2
+                ufBoxes[i][0].setText("<html>" + instr.inst + " " + instr.dest + ", " + instr.op1 + ", " + instr.op2
                         + "<br>(Thread " + instr.contexto + ")</html>");
                 // Colorir de acordo com o contexto
                 if (instr.contexto == 0) {
@@ -261,4 +293,33 @@ public class SimplePipelineVisualizer extends JFrame {
         }
     }
 
+    /**
+     * Atualiza o IPC na interface.
+     * 
+     * @param ipc Valor atual do IPC
+     */
+    public void updateIPC(double ipc) {
+        this.ipc = ipc;
+        ipcLabelSuper.setText(String.format("IPC: %.2f", ipc));
+    }
+
+    /**
+     * Atualiza o total de ciclos na interface.
+     * 
+     * @param totalCycles Valor atual dos ciclos totais
+     */
+    public void updateTotalCycles(int totalCycles) {
+        this.totalCycles = totalCycles;
+        totalCyclesLabelSuper.setText("Total de Ciclos: " + totalCycles);
+    }
+
+    /**
+     * Atualiza a quantidade de ciclos de bolha na interface.
+     * 
+     * @param bubbleCycles Valor atual dos ciclos de bolha
+     */
+    public void updateBubbleCycles(int bubbleCycles) {
+        this.bubbleCycles = bubbleCycles;
+        bubbleCyclesLabelSuper.setText("Ciclos de Bolha: " + bubbleCycles);
+    }
 }

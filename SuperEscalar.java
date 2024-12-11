@@ -3,8 +3,6 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Queue;
-import java.util.Stack;
 import javax.swing.SwingWorker;
 
 public class SuperEscalar {
@@ -45,14 +43,50 @@ public class SuperEscalar {
     }
 
     /**
-     * Executa o pipeline ciclo a ciclo atualizando o visualizador.
+     * Executa o pipeline ciclo a ciclo atualizando o visualizador e as métricas.
      * 
      * @param visualizer O visualizador para atualizar o estado do pipeline
      * @param worker     O SwingWorker que está executando a simulação
      */
     public void runPipeline(SimplePipelineVisualizer visualizer, SwingWorker<?, ?> worker) {
+        int totalCycles = 0;
+        int executedInstructions = 0;
+        int bubbleCycles = 0;
+
         for (int i = 0; i < instructionsCerto.size(); i++) {
-            visualizer.updateUfCerto(instructionsCerto.get(i), i + 1);
+            ArrayList<Instruction> currentCycleInstr = instructionsCerto.get(i);
+
+            // Atualiza a visualização do pipeline
+            visualizer.updateUfCerto(currentCycleInstr, i + 1);
+
+            // Atualização dos contadores
+            totalCycles++;
+            boolean hasBubble = false;
+            int cycleExecutedInstructions = 0;
+            for (Instruction instr : currentCycleInstr) {
+                if (instr.inst.equals("BUB")) {
+                    hasBubble = true;
+                } else {
+                    cycleExecutedInstructions++;
+                }
+            }
+            executedInstructions += cycleExecutedInstructions;
+            if (hasBubble) {
+                bubbleCycles++;
+            }
+
+            // Cálculo do IPC
+            double ipc = 0.0;
+            if (totalCycles > 0) {
+                ipc = (double) executedInstructions / totalCycles;
+            }
+
+            // Atualiza as métricas na interface
+            visualizer.updateIPC(ipc);
+            visualizer.updateTotalCycles(totalCycles);
+            visualizer.updateBubbleCycles(bubbleCycles);
+
+            // Verifica pausa/interrupção
             synchronized (Simulador.pauseLock) {
                 while (Simulador.isPaused) {
                     try {
@@ -72,6 +106,8 @@ public class SuperEscalar {
                 }
             }
         }
+
+        // Finaliza a simulação (opcional: pode adicionar notificações aqui se desejar)
     }
 
     public ArrayList<ArrayList<Instruction>> calculateThreadSequenceNotSMT(Contexto[] threads) {
