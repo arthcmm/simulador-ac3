@@ -6,7 +6,7 @@ public class Simulador {
 
     public static volatile boolean isPaused = false; // Flag de pausa
     public static final Object pauseLock = new Object(); // Lock para pausar
-    private static SwingWorker<Void, Void> currentWorker; // Referência para o SwingWorker atual
+    public static SwingWorker<Void, Void> currentWorker;   // Tornado público para acesso externo
 
     public static void main(String[] args) {
         // Inicializar o objeto Escalar
@@ -25,16 +25,11 @@ public class Simulador {
         viewer.getRunButton().addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                // Desabilita o botão Run e habilita Pause e Stop
-                viewer.getRunButton().setEnabled(false);
-                viewer.getPauseButton().setEnabled(true);
-                viewer.getStopButton().setEnabled(true);
-
                 String selectedArch = viewer.getSelectedArchitecture();
                 String selectedMode = viewer.getSelectedMode();
 
                 if (selectedMode.equals("SUPERESCALAR")) {
-                    // Modo SUPERESCALAR
+                    // Modo SUPERESCALAR: Abrir a visualização superescalar sem iniciar a simulação
                     SuperEscalar selectedPipeline;
                     if (selectedArch.equals("BMT")) {
                         System.out.println("Executando BMTPipeline...");
@@ -46,7 +41,8 @@ public class Simulador {
                         System.out.println("Executando REF Pipeline...");
                         selectedPipeline =new SuperEscalar(Integer.MAX_VALUE,3);
                     }
-                    SimplePipelineVisualizer spv = new SimplePipelineVisualizer(selectedPipeline);
+                    // Passar a referência da interface principal para a interface superescalar
+                    SimplePipelineVisualizer spv = new SimplePipelineVisualizer(selectedPipeline, viewer);
                     spv.setVisible(true);
 
                     // Criar e iniciar o SwingWorker para a simulação superescalar
@@ -84,7 +80,12 @@ public class Simulador {
                     return;
                 }
 
-                // Caso contrário, modo ESCALAR
+                // Caso contrário, modo ESCALAR: Iniciar a simulação normalmente
+                // Desabilita o botão Run e habilita Pause e Stop
+                viewer.getRunButton().setEnabled(false);
+                viewer.getPauseButton().setEnabled(true);
+                viewer.getStopButton().setEnabled(true);
+
                 ArrayList<Instruction> selectedPipeline;
 
                 if (selectedArch.equals("BMT")) {
@@ -167,9 +168,16 @@ public class Simulador {
 
                     @Override
                     protected void done() {
+                        // Redefinir a flag de pausa
+                        isPaused = false;
+                        synchronized (pauseLock) {
+                            pauseLock.notifyAll();
+                        }
+
                         viewer.getRunButton().setEnabled(true);
                         viewer.getPauseButton().setEnabled(false);
                         viewer.getStopButton().setEnabled(false);
+                        viewer.getPauseButton().setText("Pause");
                         try {
                             get(); // Verifica se houve exceções
                             if (!isCancelled()) {
@@ -221,6 +229,12 @@ public class Simulador {
             public void actionPerformed(ActionEvent e) {
                 if (currentWorker != null && !currentWorker.isDone()) {
                     currentWorker.cancel(true);
+                }
+
+                // Redefinir a flag de pausa e notificar todas as threads aguardando
+                isPaused = false;
+                synchronized (pauseLock) {
+                    pauseLock.notifyAll();
                 }
 
                 // Resetar os botões

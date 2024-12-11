@@ -115,19 +115,6 @@ public class EscalarPipelineViewer extends JFrame {
     }
 
     /**
-     * Gera uma cor baseada no índice do contexto.
-     * 
-     * @param index Índice do contexto
-     * @return Objeto Color correspondente
-     */
-    private Color generateColor(int index) {
-        int r = (index * 50) % 256; // Vermelho
-        int g = (index * 100) % 256; // Verde
-        int b = (index * 150) % 256; // Azul
-        return new Color(r, g, b);
-    }
-
-    /**
      * Atualiza o pipeline ESCALAR no visualizador.
      * 
      * @param pipeline Lista de instruções no pipeline
@@ -151,6 +138,19 @@ public class EscalarPipelineViewer extends JFrame {
             }
         }
         setTitle("Pipeline - Ciclo " + (cycle + 1));
+    }
+
+    /**
+     * Gera uma cor baseada no índice do contexto.
+     * 
+     * @param index Índice do contexto
+     * @return Objeto Color correspondente
+     */
+    private Color generateColor(int index) {
+        int r = (index * 50) % 256; // Vermelho
+        int g = (index * 100) % 256; // Verde
+        int b = (index * 150) % 256; // Azul
+        return new Color(r, g, b);
     }
 
     // Métodos para atualizar as métricas
