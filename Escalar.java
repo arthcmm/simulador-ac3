@@ -107,7 +107,7 @@ public class Escalar {
 
     public void encontraBolha() {
         for (int i = 0; i < bmtPipeline.size(); i++) {
-            if (bmtPipeline.get(i).inst.equals("LDW")) {
+            if (bmtPipeline.get(i).inst.equals("LDW")||bmtPipeline.get(i).inst.equals("SDW")||bmtPipeline.get(i).inst.equals("JMP")||bmtPipeline.get(i).inst.equals("BEQ")||bmtPipeline.get(i).inst.equals("BNQ")) {
                 if (i + 1 < bmtPipeline.size()) {
                     if (ehBolha(i)) {
                         Instruction bubble = new Instruction("BUB", "0", "0", "0", bmtPipeline.get(i).contexto);

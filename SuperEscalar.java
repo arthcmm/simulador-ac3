@@ -481,7 +481,7 @@ public class SuperEscalar {
             case "LDW", "STW":
                 uf = "MEM";
                 break;
-            case "JMP":
+            case "JMP","BNQ", "BEQ":
                 uf = "JMP";
                 break;
             case "NOP":
