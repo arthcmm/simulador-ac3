@@ -3,6 +3,8 @@ import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
+
 import javax.swing.SwingWorker;
 
 public class SuperEscalar {
@@ -52,6 +54,7 @@ public class SuperEscalar {
         int totalCycles = 0;
         int executedInstructions = 0;
         int bubbleCycles = 0;
+        List<Integer> jaExecutado = new ArrayList<>();
 
         for (int i = 0; i < instructionsCerto.size(); i++) {
             ArrayList<Instruction> currentCycleInstr = instructionsCerto.get(i);
@@ -61,20 +64,20 @@ public class SuperEscalar {
 
             // Atualização dos contadores
             totalCycles++;
-            boolean hasBubble = false;
             int cycleExecutedInstructions = 0;
             for (Instruction instr : currentCycleInstr) {
                 if (instr.inst.equals("BUB")) {
-                    hasBubble = true;
+                    bubbleCycles++;
+                } else if (getUF(instr.inst).equals("MEM") || getUF(instr.inst).equals("JMP")) {
+                    if (jaExecutado.contains(instr.id)) {
+                        jaExecutado.add(instr.id);
+                        cycleExecutedInstructions++;
+                    }
                 } else {
                     cycleExecutedInstructions++;
                 }
             }
             executedInstructions += cycleExecutedInstructions;
-            if (hasBubble) {
-                bubbleCycles++;
-            }
-
             // Cálculo do IPC
             double ipc = 0.0;
             if (totalCycles > 0) {
@@ -235,15 +238,16 @@ public class SuperEscalar {
                         continue;
 
                     Instruction[] queue = allQueues[threadIndex].get(uf);
-                    if (pointers[threadIndex][ufIndex] < queue.length && queue[pointers[threadIndex][ufIndex]] != null) {
+                    if (pointers[threadIndex][ufIndex] < queue.length
+                            && queue[pointers[threadIndex][ufIndex]] != null) {
                         currentCycleInstructions.add(queue[pointers[threadIndex][ufIndex]]);
                         pointers[threadIndex][ufIndex]++;
                         ufOccupied = true;
                         break; // Apenas uma thread por UF por ciclo
                     }
-                    threadIndex=(threadIndex+1)%threads.length;
-                } while (threadInicio!=threadIndex);
-                threadInicio = (threadIndex+1)%threads.length;
+                    threadIndex = (threadIndex + 1) % threads.length;
+                } while (threadInicio != threadIndex);
+                threadInicio = (threadIndex + 1) % threads.length;
                 if (!ufOccupied) {
                     currentCycleInstructions.add(new Instruction("BUB", "0", "0", "0", -1));
                 }

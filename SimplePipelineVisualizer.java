@@ -320,6 +320,6 @@ public class SimplePipelineVisualizer extends JFrame {
      */
     public void updateBubbleCycles(int bubbleCycles) {
         this.bubbleCycles = bubbleCycles;
-        bubbleCyclesLabelSuper.setText("Ciclos de Bolha: " + bubbleCycles);
+        bubbleCyclesLabelSuper.setText("Bolhas: " + bubbleCycles);
     }
 }
