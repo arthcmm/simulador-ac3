@@ -67,7 +67,8 @@ public class SimplePipelineVisualizer extends JFrame {
         pauseButtonSuper = new JButton("Pause");
         stopButtonSuper = new JButton("Stop");
 
-        // Inicialmente, Pause e Stop estão desabilitados até que a simulação seja iniciada
+        // Inicialmente, Pause e Stop estão desabilitados até que a simulação seja
+        // iniciada
         runButtonSuper.setEnabled(true);
         pauseButtonSuper.setEnabled(false);
         stopButtonSuper.setEnabled(false);
@@ -82,6 +83,14 @@ public class SimplePipelineVisualizer extends JFrame {
         runButtonSuper.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                for (int i = limBoxes - 1; i >= 0; i--) {
+                    ciclosBoxes[i].setText("Vazio");
+        
+                    for (int j = 0; j < 4; j++) {
+                        ufBoxes[j][i].setText("Vazio");
+                        ufBoxes[j][i].setBackground(Color.LIGHT_GRAY);
+                    }
+                }
                 // Iniciar a simulação
                 runButtonSuper.setEnabled(false);
                 pauseButtonSuper.setEnabled(true);
@@ -244,7 +253,7 @@ public class SimplePipelineVisualizer extends JFrame {
     private void puxaPraBaixo() {
         for (int i = limBoxes - 1; i > 0; i--) {
             ciclosBoxes[i].setText(ciclosBoxes[i - 1].getText());
-            
+
             for (int j = 0; j < 4; j++) {
                 ufBoxes[j][i].setText(ufBoxes[j][i - 1].getText());
                 ufBoxes[j][i].setBackground(ufBoxes[j][i - 1].getBackground());

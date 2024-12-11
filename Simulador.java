@@ -6,17 +6,10 @@ public class Simulador {
 
     public static volatile boolean isPaused = false; // Flag de pausa
     public static final Object pauseLock = new Object(); // Lock para pausar
-    public static SwingWorker<Void, Void> currentWorker;   // Tornado público para acesso externo
+    public static SwingWorker<Void, Void> currentWorker; // Tornado público para acesso externo
 
     public static void main(String[] args) {
         // Inicializar o objeto Escalar
-        Escalar escalar = new Escalar();
-        escalar.createIMTPipeline(); // Cria IMTPipeline
-        escalar.printPipeline(0);
-        escalar.createBMTPipeline(); // Cria BMTPipeline
-        escalar.printPipeline(1);
-        escalar.createREFPipeline(); // Cria REF Pipeline
-        escalar.printPipeline(2);
 
         // Inicializando a interface gráfica
         EscalarPipelineViewer viewer = new EscalarPipelineViewer();
@@ -33,13 +26,19 @@ public class Simulador {
                     SuperEscalar selectedPipeline;
                     if (selectedArch.equals("BMT")) {
                         System.out.println("Executando BMTPipeline...");
-                        selectedPipeline = new SuperEscalar(3,3);
+                        selectedPipeline = new SuperEscalar(3, 3, false);
                     } else if (selectedArch.equals("IMT")) {
                         System.out.println("Executando IMTPipeline...");
-                        selectedPipeline = new SuperEscalar(1,3);
-                    } else { // REF
+                        selectedPipeline = new SuperEscalar(1, 3, false);
+                    } else if (selectedArch.equals("REF")) { // REF
                         System.out.println("Executando REF Pipeline...");
-                        selectedPipeline =new SuperEscalar(Integer.MAX_VALUE,3);
+                        selectedPipeline = new SuperEscalar(Integer.MAX_VALUE, 3, false);
+                    } else if (selectedArch.equals("SMT")) {
+                        System.out.println("Executando SMTPipeline");
+                        selectedPipeline = new SuperEscalar(0, 3, true);
+                    } else {
+                        System.out.println("ERRO, não suportado");
+                        return;
                     }
                     // Passar a referência da interface principal para a interface superescalar
                     SimplePipelineVisualizer spv = new SimplePipelineVisualizer(selectedPipeline, viewer);
@@ -88,15 +87,25 @@ public class Simulador {
 
                 ArrayList<Instruction> selectedPipeline;
 
+                Escalar escalar = new Escalar();
                 if (selectedArch.equals("BMT")) {
+                    escalar.createBMTPipeline(); // Cria BMTPipeline
+                    escalar.printPipeline(1);
                     selectedPipeline = escalar.bmtPipeline;
                     System.out.println("Executando BMTPipeline...");
                 } else if (selectedArch.equals("IMT")) {
+                    escalar.createIMTPipeline(); // Cria IMTPipeline
+                    escalar.printPipeline(0);
                     selectedPipeline = escalar.imtPipeline;
                     System.out.println("Executando IMTPipeline...");
-                } else { // REF
+                } else if (selectedArch.equals("REF")) { // REF
+                    escalar.createREFPipeline(); // Cria REF Pipeline
+                    escalar.printPipeline(2);
                     selectedPipeline = escalar.refPipeline;
                     System.out.println("Executando REF Pipeline...");
+                } else {
+                    System.out.println("ERRO, não suportado");
+                    return;
                 }
 
                 int totalCiclos = selectedPipeline.size() + 5; // 5 estágios

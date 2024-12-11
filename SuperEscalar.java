@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Queue;
 import java.util.Stack;
@@ -12,7 +13,7 @@ public class SuperEscalar {
     ArrayList<ArrayList<Instruction>> instructionsCerto = new ArrayList<>();
     private final Contexto[] contextos;
 
-    public SuperEscalar(int blockSize, int contextosLeng) {
+    public SuperEscalar(int blockSize, int contextosLeng, boolean smt) {
         this.contextos = new Contexto[contextosLeng];
 
         String instruction;
@@ -36,7 +37,7 @@ public class SuperEscalar {
                 instructions.clear();
                 randomAccessFile.close();
             }
-            instructionsCerto = calculateThreadSequenceNotSMT(contextos);
+            instructionsCerto = smt ? calculateThreadSequenceSMT(contextos) : calculateThreadSequenceNotSMT(contextos);
         } catch (IOException e) {
             System.out.println("Exception ao ler arquivos de thread.");
             e.printStackTrace();
@@ -85,182 +86,13 @@ public class SuperEscalar {
             HashMap<String, Instruction[]> queues = new HashMap<>();
             ArrayList<Instruction> threadInstructions = threads[threadNumber].instructions;
             // Registrador renomeado
-            int currentNewRegister = 65;
             queues.put("ALU1", new Instruction[threadInstructions.size() * 2]);
             queues.put("ALU2", new Instruction[threadInstructions.size() * 2]);
             queues.put("MEM", new Instruction[threadInstructions.size() * 2]);
             queues.put("JMP", new Instruction[threadInstructions.size() * 2]);
-            for (int i = 0; i < threadInstructions.size(); i++) {
-                Instruction instruction = threadInstructions.get(i);
-                instruction.id = i;
-                String dest = instruction.dest;
-                String op1 = instruction.op1;
-                String op2 = instruction.op2;
-                for (int j = 0; j < i; j++) {
-                    Instruction prevInstruction = threadInstructions.get(j);
-                    switch (instruction.inst) {
-                        case "ADD", "SUB", "MUL", "DIV", "CPY", "DEL":
-                            // Dependencia verdadeira -> Leitura após escrita
-                            if (instructionWrites(prevInstruction.inst)
-                                    && (prevInstruction.dest.equals(op2) || prevInstruction.dest.equals(op1))) {
-                                instruction.needsToBeAfterId = Math.max(prevInstruction.id,
-                                        instruction.needsToBeAfterId);
-                            }
-                            // Dependencia de saída -> Escrita após escrita
-                            if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(dest))) {
-                                instruction.dest = "R" + (char) currentNewRegister;
-                                currentNewRegister++;
-                            }
-                            // Anti-dependência -> Escrita após leitura
-                            if (dest.equals(prevInstruction.op1) || dest.equals(prevInstruction.op2)
-                                    || (instructionReadsInDest(prevInstruction.inst)
-                                            && (prevInstruction.dest.equals(dest)))) {
-                                instruction.dest = "R" + (char) currentNewRegister;
-                                currentNewRegister++;
-                            }
-                            break;
-                        case "LDW":
-                            // Dependencia verdadeira -> Leitura após escrita
-                            if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(op2))) {
-                                instruction.needsToBeAfterId = Math.max(prevInstruction.id,
-                                        instruction.needsToBeAfterId);
-                            }
-                            // Dependencia de saída -> Escrita após escrita
-                            if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(dest))) {
-                                instruction.dest = "R" + (char) currentNewRegister;
-                                currentNewRegister++;
-                            }
-                            // Anti-dependência -> Escrita após leitura
-                            if (dest.equals(prevInstruction.op1) || dest.equals(prevInstruction.op2)
-                                    || (instructionReadsInDest(prevInstruction.inst)
-                                            && (prevInstruction.dest.equals(dest)))) {
-                                instruction.dest = "R" + (char) currentNewRegister;
-                                currentNewRegister++;
-                            }
-                            break;
-                        case "JMP":
-                            // Dependencia verdadeira -> Leitura após escrita
-                            if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(op2)
-                                    || prevInstruction.dest.equals(op1) || prevInstruction.dest.equals(dest))) {
-                                instruction.needsToBeAfterId = Math.max(prevInstruction.id,
-                                        instruction.needsToBeAfterId);
-                            }
-                            break;
-                        case "STW":
-                            // Dependencia verdadeira -> Leitura após escrita
-                            if (instructionWrites(prevInstruction.inst)
-                                    && (prevInstruction.dest.equals(op2) || prevInstruction.dest.equals(dest))) {
-                                instruction.needsToBeAfterId = Math.max(prevInstruction.id,
-                                        instruction.needsToBeAfterId);
-                            }
-                            break;
-                        case "NOP":
-                            break;
-                    }
-                }
-            }
+            resolveDependencies(threadInstructions);
             // Organizando as instruções nas filas, de acordo com as dependências
-            for (int i = 0; i < threadInstructions.size(); i++) {
-                Instruction instruction = threadInstructions.get(i);
-                String uf = getUF(instruction.inst);
-                // Tem dependencia verdadeira
-                if (instruction.needsToBeAfterId == -1) { // Não tem dependência verdadeira
-                    if (uf.equals("ALU")) {
-                        int p = 0;
-                        while (queues.get("ALU1")[p] != null && queues.get("ALU2")[p] != null) {
-                            p++;
-                        }
-                        if (queues.get("ALU1")[p] == null) {
-                            for (int c = 0; c < instruction.ciclo; c++) {
-                                queues.get("ALU1")[p + c] = instruction;
-                            }
-                        } else {
-                            for (int c = 0; c < instruction.ciclo; c++) {
-                                queues.get("ALU2")[p + c] = instruction;
-                            }
-                        }
-                    } else {
-                        int p = 0;
-                        while (queues.get(uf)[p] != null) {
-                            p++;
-                        }
-                        for (int c = 0; c < instruction.ciclo; c++) {
-                            queues.get(uf)[p + c] = instruction;
-                        }
-                    }
-                } else { // Tem dependência verdadeira
-                    if (uf.equals("ALU")) {
-                        int p = 0;
-                        int foundAt = -1;
-                        while (p < threadInstructions.size()) {
-                            if (queues.get("ALU1")[p] != null
-                                    && queues.get("ALU1")[p].id != instruction.needsToBeAfterId) {
-                                foundAt = p;
-                            }
-                            p++;
-                        }
-                        p = 0;
-                        while (p < threadInstructions.size()) {
-                            if (queues.get("ALU2")[p] != null
-                                    && queues.get("ALU2")[p].id != instruction.needsToBeAfterId) {
-                                foundAt = p;
-                            }
-                            p++;
-                        }
-                        if (foundAt != -1) {
-                            p = foundAt + 1;
-                            while (queues.get("ALU1")[p] != null && queues.get("ALU2")[p] != null) {
-                                p++;
-                            }
-                            if (queues.get("ALU1")[p] == null) {
-                                for (int c = 0; c < instruction.ciclo; c++) {
-                                    queues.get("ALU1")[p + c] = instruction;
-                                }
-                            } else {
-                                for (int c = 0; c < instruction.ciclo; c++) {
-                                    queues.get("ALU2")[p + c] = instruction;
-                                }
-                            }
-                        } else {
-                            p = 0;
-                            while (queues.get("ALU1")[p] != null && queues.get("ALU2")[p] != null) {
-                                p++;
-                            }
-                            if (queues.get("ALU1")[p] == null) {
-                                for (int c = 0; c < instruction.ciclo; c++) {
-                                    queues.get("ALU1")[p + c] = instruction;
-                                }
-                            } else {
-                                for (int c = 0; c < instruction.ciclo; c++) {
-                                    queues.get("ALU2")[p + c] = instruction;
-                                }
-                            }
-                        }
-                    } else {
-                        int p = 0;
-                        int foundAt = -1;
-                        while (p < threadInstructions.size()) {
-                            if (queues.get(uf)[p] != null && queues.get(uf)[p].id != instruction.needsToBeAfterId) {
-                                foundAt = p;
-                            }
-                            p++;
-                        }
-                        if (foundAt != -1) {
-                            for (int c = 0; c < instruction.ciclo; c++) {
-                                queues.get(uf)[foundAt + 1 + c] = instruction;
-                            }
-                        } else {
-                            p = 0;
-                            while (queues.get(uf)[p] != null) {
-                                p++;
-                            }
-                            for (int c = 0; c < instruction.ciclo; c++) {
-                                queues.get(uf)[p + c] = instruction;
-                            }
-                        }
-                    }
-                }
-            }
+            scheduleInstructionsToQueues(queues, threadInstructions);
             allQueues[threadNumber] = queues;
         }
         int[] ponteiros = new int[numberOfThreads];
@@ -277,11 +109,11 @@ public class SuperEscalar {
                 // Mais de um ciclo?
                 boolean needRepeatMEM = false;
                 boolean needRepeatJMP = false;
-                
+
                 for (int k = 0; k < blockSize || needRepeatMEM || needRepeatJMP; k++) {
                     ArrayList<Instruction> currentInstructions = new ArrayList<>();
                     Instruction[] currentQueue = allQueues[j].get("ALU1");
-                    if(currentQueue.length<=ponteiros[j]){
+                    if (currentQueue.length <= ponteiros[j]) {
                         break;
                     }
                     if (currentQueue[ponteiros[j]] != null) {
@@ -323,6 +155,265 @@ public class SuperEscalar {
         }
 
         return instructions;
+    }
+
+    public ArrayList<ArrayList<Instruction>> calculateThreadSequenceSMT(Contexto[] threads) {
+        int numberOfThreads = threads.length;
+        ArrayList<ArrayList<Instruction>> instructions = new ArrayList<>();
+        @SuppressWarnings("unchecked")
+        HashMap<String, Instruction[]>[] allQueues = new HashMap[numberOfThreads];
+
+        // Inicializa as filas de instruções para cada thread
+        for (int threadNumber = 0; threadNumber < numberOfThreads; threadNumber++) {
+            HashMap<String, Instruction[]> queues = new HashMap<>();
+            ArrayList<Instruction> threadInstructions = threads[threadNumber].instructions;
+
+            queues.put("ALU1", new Instruction[threadInstructions.size() * 2]);
+            queues.put("ALU2", new Instruction[threadInstructions.size() * 2]);
+            queues.put("MEM", new Instruction[threadInstructions.size() * 2]);
+            queues.put("JMP", new Instruction[threadInstructions.size() * 2]);
+
+            // Processa dependências dentro da thread
+            resolveDependencies(threadInstructions);
+
+            // Organiza as instruções nas filas de UFs
+            scheduleInstructionsToQueues(queues, threadInstructions);
+            allQueues[threadNumber] = queues;
+        }
+        // Ponteiros para controlar o progresso de cada thread
+        int[][] pointers = new int[numberOfThreads][4];
+        boolean[] finished = new boolean[numberOfThreads];
+        Arrays.fill(finished, false);
+
+        // Executa o escalonamento SMT
+        while (!allFinished(finished)) {
+            ArrayList<Instruction> currentCycleInstructions = new ArrayList<>();
+
+            int threadInicio = 0;
+            for (int ufIndex = 0; ufIndex < 4; ufIndex++) { // ALU1, ALU2, MEM, JMP
+                String uf = getUFNameByIndex(ufIndex);
+                boolean ufOccupied = false;
+                int threadIndex = threadInicio;
+                do {
+                    if (finished[threadIndex])
+                        continue;
+
+                    Instruction[] queue = allQueues[threadIndex].get(uf);
+                    if (pointers[threadIndex][ufIndex] < queue.length && queue[pointers[threadIndex][ufIndex]] != null) {
+                        currentCycleInstructions.add(queue[pointers[threadIndex][ufIndex]]);
+                        pointers[threadIndex][ufIndex]++;
+                        ufOccupied = true;
+                        break; // Apenas uma thread por UF por ciclo
+                    }
+                    threadIndex=(threadIndex+1)%threads.length;
+                } while (threadInicio!=threadIndex);
+                threadInicio = (threadIndex+1)%threads.length;
+                if (!ufOccupied) {
+                    currentCycleInstructions.add(new Instruction("BUB", "0", "0", "0", -1));
+                }
+            }
+
+            if (currentCycleInstructions.stream().allMatch(inst -> inst.inst.equals("BUB"))) {
+                break; // Todos os threads concluídos
+            } else {
+                instructions.add(currentCycleInstructions);
+            }
+        }
+
+        return instructions;
+    }
+
+    private void resolveDependencies(ArrayList<Instruction> threadInstructions) {
+        int currentNewRegister = 65;
+        for (int i = 0; i < threadInstructions.size(); i++) {
+            Instruction instruction = threadInstructions.get(i);
+            instruction.id = i;
+            String dest = instruction.dest;
+            String op1 = instruction.op1;
+            String op2 = instruction.op2;
+            for (int j = 0; j < i; j++) {
+                Instruction prevInstruction = threadInstructions.get(j);
+                switch (instruction.inst) {
+                    case "ADD", "SUB", "MUL", "DIV", "CPY", "DEL":
+                        // Dependencia verdadeira -> Leitura após escrita
+                        if (instructionWrites(prevInstruction.inst)
+                                && (prevInstruction.dest.equals(op2) || prevInstruction.dest.equals(op1))) {
+                            instruction.needsToBeAfterId = Math.max(prevInstruction.id,
+                                    instruction.needsToBeAfterId);
+                        }
+                        // Dependencia de saída -> Escrita após escrita
+                        if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(dest))) {
+                            instruction.dest = "R" + (char) currentNewRegister;
+                            currentNewRegister++;
+                        }
+                        // Anti-dependência -> Escrita após leitura
+                        if (dest.equals(prevInstruction.op1) || dest.equals(prevInstruction.op2)
+                                || (instructionReadsInDest(prevInstruction.inst)
+                                        && (prevInstruction.dest.equals(dest)))) {
+                            instruction.dest = "R" + (char) currentNewRegister;
+                            currentNewRegister++;
+                        }
+                        break;
+                    case "LDW":
+                        // Dependencia verdadeira -> Leitura após escrita
+                        if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(op2))) {
+                            instruction.needsToBeAfterId = Math.max(prevInstruction.id,
+                                    instruction.needsToBeAfterId);
+                        }
+                        // Dependencia de saída -> Escrita após escrita
+                        if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(dest))) {
+                            instruction.dest = "R" + (char) currentNewRegister;
+                            currentNewRegister++;
+                        }
+                        // Anti-dependência -> Escrita após leitura
+                        if (dest.equals(prevInstruction.op1) || dest.equals(prevInstruction.op2)
+                                || (instructionReadsInDest(prevInstruction.inst)
+                                        && (prevInstruction.dest.equals(dest)))) {
+                            instruction.dest = "R" + (char) currentNewRegister;
+                            currentNewRegister++;
+                        }
+                        break;
+                    case "JMP":
+                        // Dependencia verdadeira -> Leitura após escrita
+                        if (instructionWrites(prevInstruction.inst) && (prevInstruction.dest.equals(op2)
+                                || prevInstruction.dest.equals(op1) || prevInstruction.dest.equals(dest))) {
+                            instruction.needsToBeAfterId = Math.max(prevInstruction.id,
+                                    instruction.needsToBeAfterId);
+                        }
+                        break;
+                    case "STW":
+                        // Dependencia verdadeira -> Leitura após escrita
+                        if (instructionWrites(prevInstruction.inst)
+                                && (prevInstruction.dest.equals(op2) || prevInstruction.dest.equals(dest))) {
+                            instruction.needsToBeAfterId = Math.max(prevInstruction.id,
+                                    instruction.needsToBeAfterId);
+                        }
+                        break;
+                    case "NOP":
+                        break;
+                }
+            }
+        }
+    }
+
+    private void scheduleInstructionsToQueues(HashMap<String, Instruction[]> queues,
+            ArrayList<Instruction> instructions) {
+        for (int i = 0; i < instructions.size(); i++) {
+            Instruction instruction = instructions.get(i);
+            String uf = getUF(instruction.inst);
+            // Tem dependencia verdadeira
+            if (instruction.needsToBeAfterId == -1) { // Não tem dependência verdadeira
+                if (uf.equals("ALU")) {
+                    int p = 0;
+                    while (queues.get("ALU1")[p] != null && queues.get("ALU2")[p] != null) {
+                        p++;
+                    }
+                    if (queues.get("ALU1")[p] == null) {
+                        for (int c = 0; c < instruction.ciclo; c++) {
+                            queues.get("ALU1")[p + c] = instruction;
+                        }
+                    } else {
+                        for (int c = 0; c < instruction.ciclo; c++) {
+                            queues.get("ALU2")[p + c] = instruction;
+                        }
+                    }
+                } else {
+                    int p = 0;
+                    while (queues.get(uf)[p] != null) {
+                        p++;
+                    }
+                    for (int c = 0; c < instruction.ciclo; c++) {
+                        queues.get(uf)[p + c] = instruction;
+                    }
+                }
+            } else { // Tem dependência verdadeira
+                if (uf.equals("ALU")) {
+                    int p = 0;
+                    int foundAt = -1;
+                    while (p < instructions.size()) {
+                        if (queues.get("ALU1")[p] != null
+                                && queues.get("ALU1")[p].id != instruction.needsToBeAfterId) {
+                            foundAt = p;
+                        }
+                        p++;
+                    }
+                    p = 0;
+                    while (p < instructions.size()) {
+                        if (queues.get("ALU2")[p] != null
+                                && queues.get("ALU2")[p].id != instruction.needsToBeAfterId) {
+                            foundAt = p;
+                        }
+                        p++;
+                    }
+                    if (foundAt != -1) {
+                        p = foundAt + 1;
+                        while (queues.get("ALU1")[p] != null && queues.get("ALU2")[p] != null) {
+                            p++;
+                        }
+                        if (queues.get("ALU1")[p] == null) {
+                            for (int c = 0; c < instruction.ciclo; c++) {
+                                queues.get("ALU1")[p + c] = instruction;
+                            }
+                        } else {
+                            for (int c = 0; c < instruction.ciclo; c++) {
+                                queues.get("ALU2")[p + c] = instruction;
+                            }
+                        }
+                    } else {
+                        p = 0;
+                        while (queues.get("ALU1")[p] != null && queues.get("ALU2")[p] != null) {
+                            p++;
+                        }
+                        if (queues.get("ALU1")[p] == null) {
+                            for (int c = 0; c < instruction.ciclo; c++) {
+                                queues.get("ALU1")[p + c] = instruction;
+                            }
+                        } else {
+                            for (int c = 0; c < instruction.ciclo; c++) {
+                                queues.get("ALU2")[p + c] = instruction;
+                            }
+                        }
+                    }
+                } else {
+                    int p = 0;
+                    int foundAt = -1;
+                    while (p < instructions.size()) {
+                        if (queues.get(uf)[p] != null && queues.get(uf)[p].id != instruction.needsToBeAfterId) {
+                            foundAt = p;
+                        }
+                        p++;
+                    }
+                    if (foundAt != -1) {
+                        for (int c = 0; c < instruction.ciclo; c++) {
+                            queues.get(uf)[foundAt + 1 + c] = instruction;
+                        }
+                    } else {
+                        p = 0;
+                        while (queues.get(uf)[p] != null) {
+                            p++;
+                        }
+                        for (int c = 0; c < instruction.ciclo; c++) {
+                            queues.get(uf)[p + c] = instruction;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private String getUFNameByIndex(int index) {
+        switch (index) {
+            case 0:
+                return "ALU1";
+            case 1:
+                return "ALU2";
+            case 2:
+                return "MEM";
+            case 3:
+                return "JMP";
+            default:
+                throw new IllegalArgumentException("Índice inválido para Unidade Funcional: " + index);
+        }
     }
 
     public boolean allFinished(boolean[] finished) {

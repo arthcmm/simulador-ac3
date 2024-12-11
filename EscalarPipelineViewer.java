@@ -97,7 +97,7 @@ public class EscalarPipelineViewer extends JFrame {
         controlPanel.add(stopButton);
 
         // Adiciona ComboBox para selecionar a arquitetura específica
-        architectureComboBox = new JComboBox<>(new String[] { "IMT", "BMT", "REF" });
+        architectureComboBox = new JComboBox<>(new String[] { "IMT", "BMT", "REF","SMT" });
         controlPanel.add(new JLabel("Arquitetura:"));
         controlPanel.add(architectureComboBox);
 
