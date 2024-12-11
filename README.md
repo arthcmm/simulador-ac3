@@ -1,9 +1,9 @@
 # Simulador de Multithreading - Escalar e Superescalar
 ## Desenvolvido para simular IMT, BMT e SMT nas arquiteturas escalares e superescalares
 
-Para rodar o código basta baixar ou clonar o repositório e execura os comandos: 
+Para rodar o código basta baixar ou clonar o repositório e executar os comandos: 
 
- `javac Simulador.java`
+ `javac Simulador.java` ->
  `java Simulador`
 
 O propósito é simular como as instruções se comportam com o multithreading a nível de instrução nas arquiteturas. Os arquivos de threads definem as instruções de cada thread, é possível adicionar quantas threads forem necessárias
