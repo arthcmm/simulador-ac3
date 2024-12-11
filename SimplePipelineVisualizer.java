@@ -23,16 +23,9 @@ public class SimplePipelineVisualizer extends JFrame {
     private JLabel bubbleCyclesLabelSuper;
 
     // Variáveis para armazenar os valores das métricas
-    private double ipc = 0.0;
-    private int totalCycles = 0;
-    private int bubbleCycles = 0;
-
-    // Referência para a interface principal
-    private EscalarPipelineViewer mainViewer;
 
     public SimplePipelineVisualizer(SuperEscalar superEscalar, EscalarPipelineViewer mainViewer) {
         this.superEscalar = superEscalar;
-        this.mainViewer = mainViewer;
         setTitle("Pipeline Visualizer (Superescalar)");
         setSize(800, 600);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -299,7 +292,6 @@ public class SimplePipelineVisualizer extends JFrame {
      * @param ipc Valor atual do IPC
      */
     public void updateIPC(double ipc) {
-        this.ipc = ipc;
         ipcLabelSuper.setText(String.format("IPC: %.2f", ipc));
     }
 
@@ -309,7 +301,6 @@ public class SimplePipelineVisualizer extends JFrame {
      * @param totalCycles Valor atual dos ciclos totais
      */
     public void updateTotalCycles(int totalCycles) {
-        this.totalCycles = totalCycles;
         totalCyclesLabelSuper.setText("Total de Ciclos: " + totalCycles);
     }
 
@@ -319,7 +310,6 @@ public class SimplePipelineVisualizer extends JFrame {
      * @param bubbleCycles Valor atual dos ciclos de bolha
      */
     public void updateBubbleCycles(int bubbleCycles) {
-        this.bubbleCycles = bubbleCycles;
         bubbleCyclesLabelSuper.setText("Bolhas: " + bubbleCycles);
     }
 }

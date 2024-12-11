@@ -18,10 +18,6 @@ public class EscalarPipelineViewer extends JFrame {
     private JLabel bubbleCyclesLabel;
 
     // Variáveis para armazenar os valores das métricas
-    private double cpi = 0.0;
-    private int totalCycles = 0;
-    private int bubbleCycles = 0;
-
     public EscalarPipelineViewer() {
         setTitle("Visualização do Pipeline");
         setSize(1200, 500); // Ajustado para acomodar melhor os componentes
@@ -155,17 +151,14 @@ public class EscalarPipelineViewer extends JFrame {
 
     // Métodos para atualizar as métricas
     public void updateCPI(double cpi) {
-        this.cpi = cpi;
         cpiLabel.setText(String.format("CPI: %.2f", cpi));
     }
 
     public void updateTotalCycles(int totalCycles) {
-        this.totalCycles = totalCycles;
         totalCyclesLabel.setText("Total de Ciclos: " + totalCycles);
     }
 
     public void updateBubbleCycles(int bubbleCycles) {
-        this.bubbleCycles = bubbleCycles;
         bubbleCyclesLabel.setText("Ciclos de Bolha: " + bubbleCycles);
     }
 
