@@ -4,13 +4,13 @@ import java.util.ArrayList;
 
 public class Simulador {
 
-    public static volatile boolean isPaused = false;      // Flag de pausa
-    public static final Object pauseLock = new Object();  // Lock para pausar
+    public static volatile boolean isPaused = false; // Flag de pausa
+    public static final Object pauseLock = new Object(); // Lock para pausar
     private static SwingWorker<Void, Void> currentWorker; // Referência para o SwingWorker atual
 
     public static void main(String[] args) {
         // Inicializar o objeto Escalar
-        Escalar escalar = new Escalar();        
+        Escalar escalar = new Escalar();
         escalar.createIMTPipeline(); // Cria IMTPipeline
         escalar.printPipeline(0);
         escalar.createBMTPipeline(); // Cria BMTPipeline
@@ -35,17 +35,25 @@ public class Simulador {
 
                 if (selectedMode.equals("SUPERESCALAR")) {
                     // Modo SUPERESCALAR
-                    SuperEscalar superEscalar = new SuperEscalar();
-                    superEscalar.createIMTPipeline();
-
-                    SimplePipelineVisualizer spv = new SimplePipelineVisualizer(superEscalar);
+                    SuperEscalar selectedPipeline;
+                    if (selectedArch.equals("BMT")) {
+                        System.out.println("Executando BMTPipeline...");
+                        selectedPipeline = new SuperEscalar(3,3);
+                    } else if (selectedArch.equals("IMT")) {
+                        System.out.println("Executando IMTPipeline...");
+                        selectedPipeline = new SuperEscalar(1,3);
+                    } else { // REF
+                        System.out.println("Executando REF Pipeline...");
+                        selectedPipeline =new SuperEscalar(Integer.MAX_VALUE,3);
+                    }
+                    SimplePipelineVisualizer spv = new SimplePipelineVisualizer(selectedPipeline);
                     spv.setVisible(true);
 
                     // Criar e iniciar o SwingWorker para a simulação superescalar
                     currentWorker = new SwingWorker<Void, Void>() {
                         @Override
                         protected Void doInBackground() throws Exception {
-                            superEscalar.runPipeline(spv, this);
+                            selectedPipeline.runPipeline(spv, this);
                             return null;
                         }
 
@@ -57,14 +65,17 @@ public class Simulador {
                             try {
                                 get(); // Verifica se houve exceções
                                 if (!isCancelled()) {
-                                    JOptionPane.showMessageDialog(viewer, "Simulação (Superescalar) concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
+                                    JOptionPane.showMessageDialog(viewer, "Simulação (Superescalar) concluída!", "Fim",
+                                            JOptionPane.INFORMATION_MESSAGE);
                                 }
                             } catch (Exception ex) {
                                 if (isCancelled()) {
-                                    JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida", JOptionPane.WARNING_MESSAGE);
+                                    JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida",
+                                            JOptionPane.WARNING_MESSAGE);
                                 } else {
                                     ex.printStackTrace();
-                                    JOptionPane.showMessageDialog(viewer, "Erro na simulação!", "Erro", JOptionPane.ERROR_MESSAGE);
+                                    JOptionPane.showMessageDialog(viewer, "Erro na simulação!", "Erro",
+                                            JOptionPane.ERROR_MESSAGE);
                                 }
                             }
                         }
@@ -90,9 +101,9 @@ public class Simulador {
                 int totalCiclos = selectedPipeline.size() + 5; // 5 estágios
 
                 // Inicializar contadores de métricas
-                final int[] totalCycles = {0};
-                final int[] bubbleCycles = {0};
-                final int[] executedInstructions = {0};
+                final int[] totalCycles = { 0 };
+                final int[] bubbleCycles = { 0 };
+                final int[] executedInstructions = { 0 };
 
                 // Criar e iniciar o SwingWorker para a simulação escalar
                 currentWorker = new SwingWorker<Void, Void>() {
@@ -132,7 +143,8 @@ public class Simulador {
                             }
 
                             // Calcular CPI
-                            double cpi = executedInstructions[0] > 0 ? (double) totalCycles[0] / executedInstructions[0] : 0.0;
+                            double cpi = executedInstructions[0] > 0 ? (double) totalCycles[0] / executedInstructions[0]
+                                    : 0.0;
 
                             // Atualizar as métricas na interface gráfica
                             SwingUtilities.invokeLater(() -> {
@@ -161,14 +173,17 @@ public class Simulador {
                         try {
                             get(); // Verifica se houve exceções
                             if (!isCancelled()) {
-                                JOptionPane.showMessageDialog(viewer, "Simulação concluída!", "Fim", JOptionPane.INFORMATION_MESSAGE);
+                                JOptionPane.showMessageDialog(viewer, "Simulação concluída!", "Fim",
+                                        JOptionPane.INFORMATION_MESSAGE);
                             }
                         } catch (Exception ex) {
                             if (isCancelled()) {
-                                JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida", JOptionPane.WARNING_MESSAGE);
+                                JOptionPane.showMessageDialog(viewer, "Simulação interrompida!", "Interrompida",
+                                        JOptionPane.WARNING_MESSAGE);
                             } else {
                                 ex.printStackTrace();
-                                JOptionPane.showMessageDialog(viewer, "Erro na simulação!", "Erro", JOptionPane.ERROR_MESSAGE);
+                                JOptionPane.showMessageDialog(viewer, "Erro na simulação!", "Erro",
+                                        JOptionPane.ERROR_MESSAGE);
                             }
                         }
                     }

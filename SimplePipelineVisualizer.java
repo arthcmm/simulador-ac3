@@ -80,13 +80,15 @@ public class SimplePipelineVisualizer extends JFrame {
                 ufBoxes[i][0].setText(" BUB");
                 ufBoxes[i][0].setBackground(Color.RED);
             } else {
-                ufBoxes[i][0].setText(instr.codigo + " " + instr.dest + ", " + instr.op1 + ", " + instr.op2
-                        + " (Thread " + instr.contexto + ")");
+                ufBoxes[i][0].setText("<html>" + instr.codigo + " " + instr.dest + ", " + instr.op1 + ", " + instr.op2
+                        + "<br>(Thread " + instr.contexto + ")</html>");
                 // Colorir de acordo com o contexto
                 if (instr.contexto == 0) {
                     ufBoxes[i][0].setBackground(Color.ORANGE);
-                } else {
+                } else if (instr.contexto == 1) {
                     ufBoxes[i][0].setBackground(Color.GREEN);
+                } else {
+                    ufBoxes[i][0].setBackground(Color.YELLOW);
                 }
             }
         }
@@ -95,12 +97,12 @@ public class SimplePipelineVisualizer extends JFrame {
     private void puxaPraBaixo() {
         for (int i = limBoxes - 1; i > 0; i--) {
             ciclosBoxes[i].setText(ciclosBoxes[i - 1].getText());
-            
+
             for (int j = 0; j < 4; j++) {
                 ufBoxes[j][i].setText(ufBoxes[j][i - 1].getText());
                 ufBoxes[j][i].setBackground(ufBoxes[j][i - 1].getBackground());
             }
         }
     }
-    
+
 }

@@ -138,8 +138,8 @@ public class EscalarPipelineViewer extends JFrame {
             int currentIndex = cycle - i;
             if (currentIndex >= 0 && currentIndex < pipeline.size()) {
                 Instruction instr = pipeline.get(currentIndex);
-                stageLabels.get(i).setText(instr.codigo + " " + instr.dest + ", " + instr.op1 + ", " + instr.op2
-                        + " (Thread " + instr.contexto + ")");
+                stageLabels.get(i).setText("<html>" + instr.codigo + " " + instr.dest + ", " + instr.op1 + ", " + instr.op2
+                + "<br>(Thread " + instr.contexto + ")</html>");
                 stageLabels.get(i).setBackground(generateColor(instr.contexto + 1));
                 if (instr.inst.equals("BUB")) {
                     stageLabels.get(i).setText(" BUB");
