@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-
 import javax.swing.SwingWorker;
 
 public class SuperEscalar {
@@ -73,7 +72,7 @@ public class SuperEscalar {
                         jaExecutado.add(instr);
                         cycleExecutedInstructions++;
                     }
-                } else {
+                } else if(!getUF(instr.inst).equals("NOP")){
                     cycleExecutedInstructions++;
                 }
             }
@@ -158,29 +157,29 @@ public class SuperEscalar {
                     if (currentQueue[ponteiros[j]] != null) {
                         currentInstructions.add(currentQueue[ponteiros[j]]);
                     } else {
-                        currentInstructions.add(new Instruction("BUB", "0", "0", "0", j));
+                        currentInstructions.add(new Instruction("NOP", "0", "0", "0", j));
                     }
                     currentQueue = allQueues[j].get("ALU2");
                     if (currentQueue[ponteiros[j]] != null) {
                         currentInstructions.add(currentQueue[ponteiros[j]]);
                     } else {
-                        currentInstructions.add(new Instruction("BUB", "0", "0", "0", j));
+                        currentInstructions.add(new Instruction("NOP", "0", "0", "0", j));
                     }
                     currentQueue = allQueues[j].get("MEM");
                     if (currentQueue[ponteiros[j]] != null) {
                         needRepeatMEM = !needRepeatMEM;
                         currentInstructions.add(currentQueue[ponteiros[j]]);
                     } else {
-                        currentInstructions.add(new Instruction("BUB", "0", "0", "0", j));
+                        currentInstructions.add(new Instruction("NOP", "0", "0", "0", j));
                     }
                     currentQueue = allQueues[j].get("JMP");
                     if (currentQueue[ponteiros[j]] != null) {
                         needRepeatJMP = !needRepeatJMP;
                         currentInstructions.add(currentQueue[ponteiros[j]]);
                     } else {
-                        currentInstructions.add(new Instruction("BUB", "0", "0", "0", j));
+                        currentInstructions.add(new Instruction("NOP", "0", "0", "0", j));
                     }
-                    if (currentInstructions.stream().allMatch(instr -> instr.inst.equals("BUB"))) {
+                    if (currentInstructions.stream().allMatch(instr -> instr.inst.equals("NOP"))) {
                         finished[j] = true;
                     } else {
                         instructions.add(currentInstructions);
@@ -248,11 +247,11 @@ public class SuperEscalar {
                 } while (threadIndex != originalThreadIndex);
                 threadInicio = (threadIndex + 1) % numberOfThreads;
                 if (!ufOccupied) {
-                    currentCycleInstructions.add(new Instruction("BUB", "0", "0", "0", -1));
+                    currentCycleInstructions.add(new Instruction("NOP", "0", "0", "0", -1));
                 }
             }
 
-            if (currentCycleInstructions.stream().allMatch(inst -> inst.inst.equals("BUB"))) {
+            if (currentCycleInstructions.stream().allMatch(inst -> inst.inst.equals("NOP"))) {
                 break; // Todos os threads concluídos
             } else {
                 instructions.add(currentCycleInstructions);

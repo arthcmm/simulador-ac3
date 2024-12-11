@@ -257,9 +257,9 @@ public class SimplePipelineVisualizer extends JFrame {
         for (int i = 0; i < instructions.size(); i++) {
             Instruction instr = instructions.get(i);
             ciclosBoxes[0].setText("Ciclo : " + ciclo);
-            if (instr.inst.equals("BUB") || instr.inst.equals("VAZIO")) {
-                ufBoxes[i][0].setText(" BUB");
-                ufBoxes[i][0].setBackground(Color.RED);
+            if (instr.inst.equals("NOP") || instr.inst.equals("VAZIO")) {
+                ufBoxes[i][0].setText(" NOP");
+                ufBoxes[i][0].setBackground(Color.GRAY);
             } else {
                 ufBoxes[i][0].setText("<html>" + instr.inst + " " + instr.dest + ", " + instr.op1 + ", " + instr.op2
                         + "<br>(Thread " + instr.contexto + ")</html>");
