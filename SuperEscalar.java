@@ -54,7 +54,7 @@ public class SuperEscalar {
         int totalCycles = 0;
         int executedInstructions = 0;
         int bubbleCycles = 0;
-        List<Integer> jaExecutado = new ArrayList<>();
+        List<Instruction> jaExecutado = new ArrayList<>();
 
         for (int i = 0; i < instructionsCerto.size(); i++) {
             ArrayList<Instruction> currentCycleInstr = instructionsCerto.get(i);
@@ -69,8 +69,8 @@ public class SuperEscalar {
                 if (instr.inst.equals("BUB")) {
                     bubbleCycles++;
                 } else if (getUF(instr.inst).equals("MEM") || getUF(instr.inst).equals("JMP")) {
-                    if (!jaExecutado.contains(instr.id)) {
-                        jaExecutado.add(instr.id);
+                    if (!jaExecutado.contains(instr)) {
+                        jaExecutado.add(instr);
                         cycleExecutedInstructions++;
                     }
                 } else {
